@@ -2,7 +2,8 @@ import { auth, db } from "./firebase-config.js";
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
-    onAuthStateChanged
+    onAuthStateChanged,
+    signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -128,15 +129,23 @@ document.addEventListener("DOMContentLoaded", function () {
         definirCarregando(true);
 
         try {
-            let credencial;
-
             if (modoAtual === "cadastro") {
-                credencial = await createUserWithEmailAndPassword(auth, email, senha);
-                mostrarAviso("Conta criada com sucesso! Redirecionando...", "sucesso");
-            } else {
-                credencial = await signInWithEmailAndPassword(auth, email, senha);
-                mostrarAviso("Login realizado! Redirecionando...", "sucesso");
+                await createUserWithEmailAndPassword(auth, email, senha);
+
+                // O Firebase loga a pessoa automaticamente ao criar a conta —
+                // aqui a gente desloga de propósito, pra ela precisar entrar
+                // manualmente na aba "Entrar" depois.
+                await signOut(auth);
+
+                mostrarAviso("Conta criada com sucesso! Vai na aba \"Entrar\" pra fazer login.", "sucesso");
+                mudarPara("entrar");
+                formulario.reset();
+                definirCarregando(false);
+                return;
             }
+
+            const credencial = await signInWithEmailAndPassword(auth, email, senha);
+            mostrarAviso("Login realizado! Redirecionando...", "sucesso");
 
             setTimeout(() => {
                 rotearAposLogin(credencial.user.uid);

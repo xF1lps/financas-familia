@@ -15,6 +15,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let uidAtual = null;
 
+    // Limita a seleção a no máximo 2 profissões marcadas ao mesmo tempo:
+    // quando já tem 2 marcadas, desativa as demais até uma ser desmarcada.
+    const checkboxesProfissao = listaProfissoes.querySelectorAll("input[type=checkbox]");
+    checkboxesProfissao.forEach((checkbox) => {
+        checkbox.addEventListener("change", () => {
+            const marcados = listaProfissoes.querySelectorAll("input[type=checkbox]:checked");
+            const atingiuLimite = marcados.length >= 2;
+
+            checkboxesProfissao.forEach((outro) => {
+                if (!outro.checked) {
+                    outro.disabled = atingiuLimite;
+                }
+            });
+        });
+    });
+
     // Sem login, não tem como preencher onboarding — manda pra tela de login
     onAuthStateChanged(auth, (usuario) => {
         if (!usuario) {

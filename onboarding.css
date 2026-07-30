@@ -8,6 +8,11 @@ body {
     align-items: center;
     justify-content: center;
     padding: 24px;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(circle at 15% 20%, rgba(217, 119, 87, 0.10), transparent 45%),
+                radial-gradient(circle at 85% 80%, rgba(217, 119, 87, 0.08), transparent 40%),
+                var(--bg-deep);
 }
 
 .cartao-onboarding {
@@ -75,6 +80,11 @@ body {
     height: 18px;
     accent-color: var(--accent);
     cursor: pointer;
+}
+
+.item-checkbox:has(input:disabled) {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 @media (max-width: 480px) {
