@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", function () {
             "auth/too-many-requests": "Muitas tentativas seguidas. Espera um pouco antes de tentar de novo.",
             "auth/network-request-failed": "Falha de conexão. Confere sua internet e tenta de novo."
         };
-        return mensagens[codigoErro] || "Algo deu errado. Tenta novamente em instantes.";
+        return (mensagens[codigoErro] || "Algo deu errado. Tenta novamente em instantes.") + ` (código: ${codigoErro})`;
     }
 
     function definirCarregando(carregando) {
