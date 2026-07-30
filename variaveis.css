@@ -1,0 +1,21 @@
+/* ==========================================================================
+   VARIÁVEIS DE DESIGN COMPARTILHADAS
+   Este arquivo só guarda cores e fontes — nenhuma outra tela deveria repetir
+   esses valores, todas devem importar este arquivo e usar var(--nome-aqui).
+   Se um dia você quiser mudar o laranja por outra cor, muda só aqui.
+   ========================================================================== */
+:root {
+    --bg-deep: #0A0A0A;         /* Fundo geral: preto quase puro */
+    --surface: #161616;         /* Superfície dos cartões, um tom acima do fundo */
+    --surface-alta: #202020;    /* Superfície de inputs/campos, ainda mais clara */
+    --accent: #D97757;          /* Laranja: cor de destaque, botões e detalhes */
+    --accent-hover: #E58A6D;
+    --text-primary: #FFFFFF;    /* Texto principal: branco puro */
+    --text-muted: #9A9A9A;      /* Texto secundário: cinza médio */
+    --error: #E5484D;           /* Vermelho para erros (diferente do laranja, pra não confundir) */
+    --sucesso: #34D399;         /* Verde para mensagens de sucesso e ganhos */
+    --borda: rgba(255, 255, 255, 0.08);
+
+    --fonte-titulo: 'Fraunces', Georgia, serif;
+    --fonte-corpo: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+}

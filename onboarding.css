@@ -1,0 +1,84 @@
+body {
+    background-color: var(--bg-deep);
+}
+
+.tela-onboarding {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.cartao-onboarding {
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--surface);
+    border: 1px solid var(--borda);
+    border-radius: 14px;
+    padding: 36px 32px;
+}
+
+.selo-marca {
+    display: inline-block;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+}
+
+.titulo-onboarding {
+    font-family: var(--fonte-titulo);
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+}
+
+.texto-onboarding {
+    font-size: 14.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0 0 28px 0;
+}
+
+.dica-campo {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.lista-checkbox {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background-color: var(--surface-alta);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 14px 16px;
+}
+
+.item-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14.5px;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.item-checkbox input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+@media (max-width: 480px) {
+    .cartao-onboarding {
+        padding: 28px 22px;
+    }
+}

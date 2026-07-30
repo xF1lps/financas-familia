@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finanças</title>
+
+    <!-- Fontes: Fraunces (serifa com personalidade, usada no título/marca) e Manrope (texto do dia a dia) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="variaveis.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0A0A0A">
+    <link rel="apple-touch-icon" href="icone-192.png">
+</head>
+<body>
+
+    <div class="tela-login">
+
+        <!-- ========================================================== -->
+        <!-- PAINEL DA MARCA (lado esquerdo no desktop, topo no celular) -->
+        <!-- ========================================================== -->
+        <div class="painel-marca">
+            <div class="conteudo-marca">
+                <span class="selo-marca">Finanças</span>
+                <h1 class="titulo-marca">Cada centavo,<br>sob controle da família.</h1>
+                <p class="texto-marca">Registre ganhos, gastos do dia a dia e descubra pra onde o dinheiro está indo — sem planilha complicada.</p>
+
+                <!-- Elemento assinatura: linha de crescimento que se desenha sozinha -->
+                <svg class="grafico-assinatura" viewBox="0 0 320 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path id="linha-crescimento" d="M10 95 C 60 100, 90 70, 120 75 S 180 40, 210 45 S 270 15, 310 20"
+                          stroke="#D97757" stroke-width="3" stroke-linecap="round" fill="none"/>
+                    <circle class="ponto-grafico ponto-1" cx="10" cy="95" r="4" fill="#D97757"/>
+                    <circle class="ponto-grafico ponto-2" cx="120" cy="75" r="4" fill="#D97757"/>
+                    <circle class="ponto-grafico ponto-3" cx="210" cy="45" r="4" fill="#D97757"/>
+                    <circle class="ponto-grafico ponto-4" cx="310" cy="20" r="5" fill="#FFFFFF"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- ========================================================== -->
+        <!-- PAINEL DO FORMULÁRIO (lado direito no desktop, embaixo no celular) -->
+        <!-- ========================================================== -->
+        <div class="painel-formulario">
+            <div class="cartao-formulario">
+
+                <!-- Abas para alternar entre Entrar e Criar conta -->
+                <div class="abas-acesso" role="tablist">
+                    <button class="aba-botao ativa" id="aba-entrar" role="tab" aria-selected="true">Entrar</button>
+                    <button class="aba-botao" id="aba-cadastro" role="tab" aria-selected="false">Criar conta</button>
+                </div>
+
+                <!-- Mensagem de erro/aviso, escondida até acontecer algo -->
+                <div class="mensagem-aviso" id="mensagem-aviso" role="alert"></div>
+
+                <form id="formulario-acesso" novalidate>
+                    <div class="campo">
+                        <label for="campo-email">E-mail</label>
+                        <input type="email" id="campo-email" name="email" placeholder="voce@exemplo.com" autocomplete="email" required>
+                    </div>
+
+                    <div class="campo">
+                        <label for="campo-senha">Senha</label>
+                        <div class="campo-senha-wrapper">
+                            <input type="password" id="campo-senha" name="senha" placeholder="Mínimo 6 caracteres" autocomplete="current-password" minlength="6" required>
+                            <button type="button" class="botao-olho" id="botao-olho" aria-label="Mostrar senha">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Campo extra, só aparece na aba "Criar conta" -->
+                    <div class="campo campo-confirmar" id="campo-confirmar" hidden>
+                        <label for="campo-confirmar-senha">Confirmar senha</label>
+                        <div class="campo-senha-wrapper">
+                            <input type="password" id="campo-confirmar-senha" name="confirmarSenha" placeholder="Repita a senha" autocomplete="new-password">
+                            <button type="button" class="botao-olho" id="botao-olho-confirmar" aria-label="Mostrar senha">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="botao-enviar" id="botao-enviar">
+                        <span class="texto-botao">Entrar</span>
+                        <span class="spinner-botao" hidden></span>
+                    </button>
+                </form>
+
+                <p class="rodape-formulario">Seus dados são só seus — cada pessoa vê apenas os próprios lançamentos.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- app.js já importa o Firebase e a configuração internamente, por isso só ele precisa ser carregado aqui -->
+    <script type="module" src="app.js"></script>
+    <script>
+        // Registra o service worker (só funciona em produção/HTTPS, ex: GitHub Pages)
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
+        }
+    </script>
+</body>
+</html>

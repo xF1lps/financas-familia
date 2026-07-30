@@ -1,0 +1,367 @@
+/* As cores e fontes usadas aqui vêm do arquivo variaveis.css, carregado antes
+   deste no HTML — por isso os var(--nome) abaixo funcionam sem redeclarar nada */
+
+/* Reset simples e configuração base */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: var(--fonte-corpo);
+    background-color: var(--bg-deep);
+    color: var(--text-primary);
+}
+
+/* ==========================================================================
+   ESTRUTURA GERAL DA TELA (duas colunas no desktop)
+   ========================================================================== */
+.tela-login {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Metade pra marca, metade pro formulário */
+}
+
+/* ==========================================================================
+   PAINEL DA MARCA (lado esquerdo)
+   ========================================================================== */
+.painel-marca {
+    background: linear-gradient(160deg, #151515 0%, #050505 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Textura sutil de fundo, só pra não ficar um preto chapado */
+.painel-marca::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle at 20% 20%, rgba(217, 119, 87, 0.08), transparent 45%),
+                       radial-gradient(circle at 80% 80%, rgba(217, 119, 87, 0.06), transparent 40%);
+    pointer-events: none;
+}
+
+.conteudo-marca {
+    max-width: 420px;
+    position: relative;
+    z-index: 1;
+}
+
+.selo-marca {
+    display: inline-block;
+    font-family: var(--fonte-corpo);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 24px;
+}
+
+.titulo-marca {
+    font-family: var(--fonte-titulo);
+    font-size: clamp(32px, 3.2vw, 44px);
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0 0 20px 0;
+    color: var(--text-primary);
+}
+
+.texto-marca {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin: 0 0 48px 0;
+}
+
+/* Gráfico assinatura: a linha some e se desenha sozinha ao carregar a página */
+.grafico-assinatura {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+}
+
+#linha-crescimento {
+    stroke-dasharray: 400;
+    stroke-dashoffset: 400;
+    animation: desenhar-linha 1.8s cubic-bezier(0.65, 0, 0.35, 1) 0.3s forwards;
+}
+
+.ponto-grafico {
+    opacity: 0;
+    animation: aparecer-ponto 0.4s ease forwards;
+}
+.ponto-1 { animation-delay: 0.4s; }
+.ponto-2 { animation-delay: 0.9s; }
+.ponto-3 { animation-delay: 1.4s; }
+.ponto-4 { animation-delay: 1.9s; }
+
+@keyframes desenhar-linha {
+    to { stroke-dashoffset: 0; }
+}
+@keyframes aparecer-ponto {
+    to { opacity: 1; }
+}
+
+/* ==========================================================================
+   PAINEL DO FORMULÁRIO (lado direito)
+   ========================================================================== */
+.painel-formulario {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.cartao-formulario {
+    width: 100%;
+    max-width: 380px;
+}
+
+/* Abas Entrar / Criar conta */
+.abas-acesso {
+    display: flex;
+    gap: 4px;
+    background-color: var(--surface);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 32px;
+}
+
+.aba-botao {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 10px 0;
+    border-radius: 7px;
+    font-family: var(--fonte-corpo);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.aba-botao.ativa {
+    background-color: var(--accent);
+    color: #0A0A0A;
+}
+
+/* Mensagem de aviso/erro */
+.mensagem-aviso {
+    display: none;
+    background-color: rgba(198, 93, 69, 0.12);
+    border: 1px solid rgba(198, 93, 69, 0.35);
+    color: #E8998A;
+    font-size: 13.5px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.mensagem-aviso.visivel {
+    display: block;
+}
+
+.mensagem-aviso.sucesso {
+    background-color: rgba(52, 211, 153, 0.12);
+    border-color: rgba(52, 211, 153, 0.35);
+    color: var(--sucesso);
+}
+
+/* Campos do formulário */
+.campo {
+    margin-bottom: 18px;
+}
+
+.campo label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+}
+
+.campo input,
+.campo select {
+    width: 100%;
+    background-color: var(--surface-alta);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 13px 14px;
+    font-family: var(--fonte-corpo);
+    font-size: 15px;
+    color: var(--text-primary);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.campo select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%239A9A9A' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+}
+
+.campo select:focus,
+.campo input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.18);
+}
+
+.campo input::placeholder {
+    color: rgba(154, 154, 154, 0.7);
+}
+
+.campo-senha-wrapper {
+    position: relative;
+}
+
+.campo-confirmar .campo-senha-wrapper input,
+.campo-senha-wrapper input {
+    padding-right: 44px;
+}
+
+.botao-olho {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    transition: color 0.2s ease;
+}
+
+.botao-olho:hover {
+    color: var(--accent);
+}
+
+/* Botão principal de envio */
+.botao-enviar {
+    width: 100%;
+    background-color: var(--accent);
+    color: #0A0A0A;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 0;
+    font-family: var(--fonte-corpo);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: background-color 0.25s ease, transform 0.15s ease;
+}
+
+.botao-enviar:hover {
+    background-color: var(--accent-hover);
+}
+
+.botao-enviar:active {
+    transform: scale(0.98);
+}
+
+.botao-enviar:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Spinner de carregamento dentro do botão */
+.spinner-botao {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(10, 10, 10, 0.3);
+    border-top-color: #0A0A0A;
+    border-radius: 50%;
+    animation: girar-spinner 0.7s linear infinite;
+}
+
+@keyframes girar-spinner {
+    to { transform: rotate(360deg); }
+}
+
+.rodape-formulario {
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-top: 24px;
+    line-height: 1.5;
+}
+
+/* ==========================================================================
+   RESPONSIVIDADE — TABLET (até 900px): reduz o painel de marca
+   ========================================================================== */
+@media (max-width: 900px) {
+    .painel-marca {
+        padding: 40px;
+    }
+
+    .texto-marca {
+        margin-bottom: 32px;
+    }
+
+    .grafico-assinatura {
+        max-width: 260px;
+    }
+}
+
+/* ==========================================================================
+   RESPONSIVIDADE — CELULAR (até 720px): empilha tudo em coluna única
+   ========================================================================== */
+@media (max-width: 720px) {
+    .tela-login {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+    }
+
+    .painel-marca {
+        padding: 36px 24px 28px 24px;
+        min-height: auto;
+    }
+
+    .conteudo-marca {
+        max-width: 100%;
+    }
+
+    .titulo-marca {
+        font-size: 26px;
+    }
+
+    .texto-marca {
+        font-size: 14.5px;
+        margin-bottom: 24px;
+    }
+
+    .grafico-assinatura {
+        max-width: 200px;
+        height: 70px;
+    }
+
+    .painel-formulario {
+        padding: 28px 22px 48px 22px;
+    }
+}
+
+/* Respeita quem prefere menos animação (acessibilidade) */
+@media (prefers-reduced-motion: reduce) {
+    #linha-crescimento,
+    .ponto-grafico {
+        animation: none !important;
+        stroke-dashoffset: 0;
+        opacity: 1;
+    }
+}

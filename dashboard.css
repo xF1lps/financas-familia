@@ -1,0 +1,475 @@
+/* Este arquivo assume que variaveis.css e style.css já foram carregados antes
+   dele — por isso reaproveita var(--accent), .campo, .botao-enviar, etc.
+   sem precisar redeclarar nada disso aqui. */
+
+body {
+    background-color: var(--bg-deep);
+}
+
+.app-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ==========================================================================
+   BARRA SUPERIOR
+   ========================================================================== */
+.topo-app {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--borda);
+}
+
+.marca-topo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--fonte-titulo);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.ponto-marca {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--accent);
+}
+
+.usuario-topo {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.email-usuario {
+    font-size: 13.5px;
+    color: var(--text-muted);
+}
+
+.botao-sair {
+    background: none;
+    border: 1px solid var(--borda);
+    color: var(--text-muted);
+    font-family: var(--fonte-corpo);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: border-color 0.25s ease, color 0.25s ease;
+}
+
+.botao-sair:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* ==========================================================================
+   CONTEÚDO PRINCIPAL
+   ========================================================================== */
+.conteudo-principal {
+    flex: 1;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 24px 100px 24px; /* padding-bottom grande: espaço pro botão flutuante não tampar a lista */
+}
+
+/* Navegação entre meses */
+.navegacao-mes {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 28px;
+}
+
+.rotulo-mes {
+    font-family: var(--fonte-titulo);
+    font-size: 20px;
+    font-weight: 600;
+    min-width: 160px;
+    text-align: center;
+    text-transform: capitalize;
+}
+
+.seta-mes {
+    background-color: var(--surface);
+    border: 1px solid var(--borda);
+    color: var(--text-primary);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    transition: border-color 0.25s ease, color 0.25s ease;
+}
+
+.seta-mes:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* ==========================================================================
+   CARTÕES DE RESUMO
+   ========================================================================== */
+.cartoes-resumo {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 36px;
+}
+
+.cartao-resumo {
+    background-color: var(--surface);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rotulo-cartao {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.valor-cartao {
+    font-family: var(--fonte-titulo);
+    font-size: clamp(16px, 2.4vw, 20px);
+    font-weight: 600;
+}
+
+.cartao-ganho .valor-cartao {
+    color: var(--sucesso);
+}
+
+.cartao-gasto .valor-cartao {
+    color: var(--text-primary);
+}
+
+.cartao-saldo .valor-cartao {
+    color: var(--accent);
+}
+
+/* ==========================================================================
+   LISTA DE LANÇAMENTOS
+   ========================================================================== */
+.titulo-secao {
+    font-family: var(--fonte-titulo);
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0 0 14px 0;
+}
+
+.lista-lancamentos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background-color: var(--surface);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.item-lancamento {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--borda);
+}
+
+.item-lancamento:last-child {
+    border-bottom: none;
+}
+
+.ponto-categoria {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.item-lancamento.tipo-ganho .ponto-categoria {
+    background-color: var(--sucesso);
+}
+
+.item-lancamento.tipo-gasto .ponto-categoria {
+    background-color: var(--accent);
+}
+
+.info-lancamento {
+    flex: 1;
+    min-width: 0; /* permite que o texto trunque com ellipsis se for muito longo */
+}
+
+.descricao-lancamento {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.meta-lancamento {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.valor-lancamento {
+    font-family: var(--fonte-titulo);
+    font-weight: 600;
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+.item-lancamento.tipo-ganho .valor-lancamento {
+    color: var(--sucesso);
+}
+
+.item-lancamento.tipo-gasto .valor-lancamento {
+    color: var(--text-primary);
+}
+
+.botao-excluir {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    transition: color 0.2s ease;
+}
+
+.botao-excluir:hover {
+    color: var(--error);
+}
+
+.lista-vazia {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 32px 16px;
+}
+
+/* ==========================================================================
+   BOTÃO FLUTUANTE (ADICIONAR LANÇAMENTO)
+   ========================================================================== */
+.botao-adicionar {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: var(--accent);
+    color: #0A0A0A;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(217, 119, 87, 0.35);
+    transition: background-color 0.25s ease, transform 0.2s ease;
+}
+
+.botao-adicionar:hover {
+    background-color: var(--accent-hover);
+    transform: scale(1.05);
+}
+
+/* ==========================================================================
+   MODAL DE NOVO LANÇAMENTO
+   ========================================================================== */
+.fundo-modal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 999;
+}
+
+.modal-lancamento {
+    background-color: var(--surface);
+    border: 1px solid var(--borda);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 420px;
+    padding: 28px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.cabecalho-modal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.cabecalho-modal h3 {
+    font-family: var(--fonte-titulo);
+    font-size: 19px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.botao-fechar-modal {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.botao-fechar-modal:hover {
+    color: var(--text-primary);
+}
+
+.valor-wrapper {
+    display: flex;
+    align-items: center;
+    background-color: var(--surface-alta);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 0 14px;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.valor-wrapper:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.18);
+}
+
+.prefixo-valor {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.valor-wrapper input {
+    border: none !important;
+    background: none !important;
+    box-shadow: none !important;
+    padding-left: 8px !important;
+}
+
+/* ==========================================================================
+   BANNER DO DIARISTA (registro rápido de ganho do dia)
+   ========================================================================== */
+.banner-diarista {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background-color: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+}
+
+.texto-banner-diarista {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.texto-banner-diarista strong {
+    font-size: 14.5px;
+    color: var(--text-primary);
+}
+
+.texto-banner-diarista span {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.acao-banner-diarista {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.acao-banner-diarista .valor-wrapper {
+    width: 140px;
+}
+
+.acao-banner-diarista .botao-enviar {
+    width: auto;
+    padding: 12px 20px;
+    margin: 0;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .banner-diarista {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .acao-banner-diarista {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .acao-banner-diarista .valor-wrapper {
+        width: 100%;
+    }
+}
+
+/* ==========================================================================
+   RESPONSIVIDADE — CELULAR
+   ========================================================================== */
+@media (max-width: 600px) {
+    .topo-app {
+        padding: 16px 20px;
+    }
+
+    .email-usuario {
+        display: none; /* some no celular pra não espremer o layout, "Sair" continua visível */
+    }
+
+    .conteudo-principal {
+        padding: 24px 16px 100px 16px;
+    }
+
+    .cartoes-resumo {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .cartao-resumo {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+    }
+
+    .botao-adicionar {
+        bottom: 20px;
+        right: 20px;
+        width: 52px;
+        height: 52px;
+    }
+
+    .modal-lancamento {
+        padding: 22px;
+    }
+}
