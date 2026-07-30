@@ -15,7 +15,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebas
 // crítico, tipo senha: o que realmente protege seus dados são as REGRAS DE
 // SEGURANÇA que configuramos no Firestore, não essas chaves).
 const firebaseConfig = {
-  apiKey: "AIzaSyDVvPLhZxdHP4iCIkD9UzQT0k9SisDNVZQ",
+  apiKey: "AIzaSyDVvPlhZxdHP4iCIkD9UzQT0k9SisDNVZQ",
   authDomain: "financas-familia-f2104.firebaseapp.com",
   projectId: "financas-familia-f2104",
   storageBucket: "financas-familia-f2104.firebasestorage.app",
