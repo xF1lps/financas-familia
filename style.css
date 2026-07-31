@@ -13,6 +13,15 @@ body {
     color: var(--text-primary);
 }
 
+/* Só a tela de login usa esse id — trava o scroll/arraste, deixando a tela
+   fixa. Onboarding e dashboard não usam esse id, então continuam rolando normalmente. */
+body#pagina-login {
+    height: 100vh;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+}
+
 /* ==========================================================================
    TELA DE CARREGAMENTO INICIAL
    Cobre a tela de login até o app confirmar se a pessoa já está logada —

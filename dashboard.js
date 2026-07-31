@@ -189,11 +189,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const hoje = new Date();
         campoData.value = hoje.toISOString().split("T")[0];
 
-        fundoModal.hidden = false;
+        fundoModal.classList.add("aberto");
     }
 
     function fecharModal() {
-        fundoModal.hidden = true;
+        fundoModal.classList.remove("aberto");
     }
 
     botaoAbrirModal.addEventListener("click", abrirModal);
