@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const mensagemAviso = document.getElementById("mensagem-aviso");
     const botaoOlho = document.getElementById("botao-olho");
     const botaoOlhoConfirmar = document.getElementById("botao-olho-confirmar");
+    const telaCarregamento = document.getElementById("tela-carregamento");
 
     let modoAtual = "entrar";
 
@@ -159,10 +160,13 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Se a pessoa já estiver logada (o Firebase lembra sozinho), pula a tela de
-    // login e já decide pra onde mandar
+    // login e já decide pra onde mandar — sem nunca revelar o formulário atrás
+    // da tela de carregamento. Se não estiver logada, aí sim mostra o login.
     onAuthStateChanged(auth, (usuario) => {
         if (usuario) {
             rotearAposLogin(usuario.uid);
+        } else {
+            telaCarregamento.classList.add("oculto");
         }
     });
 

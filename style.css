@@ -14,6 +14,35 @@ body {
 }
 
 /* ==========================================================================
+   TELA DE CARREGAMENTO INICIAL
+   Cobre a tela de login até o app confirmar se a pessoa já está logada —
+   sem isso, o formulário de login "pisca" na tela por uma fração de segundo
+   antes de redirecionar quem já tem sessão salva.
+   ========================================================================== */
+.tela-carregamento {
+    position: fixed;
+    inset: 0;
+    background-color: var(--bg-deep);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.tela-carregamento.oculto {
+    display: none;
+}
+
+.spinner-carregamento {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(217, 119, 87, 0.25);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: girar-spinner 0.7s linear infinite;
+}
+
+/* ==========================================================================
    ESTRUTURA GERAL DA TELA (duas colunas no desktop)
    ========================================================================== */
 .tela-login {

@@ -303,6 +303,12 @@ body {
     z-index: 999;
 }
 
+/* Sem essa regra, o "display: flex" acima vence o comportamento padrão do
+   atributo hidden, e o modal nunca some de verdade quando fechado */
+.fundo-modal[hidden] {
+    display: none;
+}
+
 .modal-lancamento {
     background-color: var(--surface);
     border: 1px solid var(--borda);
