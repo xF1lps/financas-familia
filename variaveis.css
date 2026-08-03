@@ -13,6 +13,7 @@
     --text-primary: #FFFFFF;    /* Texto principal: branco puro */
     --text-muted: #9A9A9A;      /* Texto secundário: cinza médio */
     --error: #E5484D;           /* Vermelho para erros (diferente do laranja, pra não confundir) */
+    --gasto-cor: #E58080;       /* Vermelho suave, só pra sinalizar saída de dinheiro (menos agressivo que --error) */
     --sucesso: #34D399;         /* Verde para mensagens de sucesso e ganhos */
     --borda: rgba(255, 255, 255, 0.08);
 

@@ -38,35 +38,125 @@ body {
     height: 8px;
     border-radius: 50%;
     background-color: var(--accent);
+    flex-shrink: 0;
 }
 
-.usuario-topo {
+/* Botão hambúrguer (3 linhas) */
+.botao-hamburguer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.botao-hamburguer span {
+    width: 18px;
+    height: 2px;
+    background-color: var(--text-primary);
+    border-radius: 2px;
+}
+
+/* ==========================================================================
+   MENU LATERAL (e-mail, sair, créditos)
+   ========================================================================== */
+.overlay-menu {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 998;
+    display: none;
+}
+
+.overlay-menu.aberto {
+    display: block;
+}
+
+.painel-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: min(82%, 320px);
+    background-color: var(--surface);
+    border-left: 1px solid var(--borda);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 24px;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.painel-menu.aberto {
+    transform: translateX(0);
+}
+
+.botao-fechar-menu-lateral {
+    align-self: flex-end;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+.botao-fechar-menu-lateral:hover {
+    color: var(--text-primary);
+}
+
+.topo-painel-menu {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--borda);
 }
 
 .email-usuario {
     font-size: 13.5px;
     color: var(--text-muted);
+    word-break: break-all;
 }
 
-.botao-sair {
+.botao-encerrar-sessao {
     background: none;
     border: 1px solid var(--borda);
-    color: var(--text-muted);
+    color: var(--text-primary);
     font-family: var(--fonte-corpo);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
-    padding: 8px 16px;
-    border-radius: 7px;
+    padding: 12px 16px;
+    border-radius: 8px;
     cursor: pointer;
+    text-align: left;
     transition: border-color 0.25s ease, color 0.25s ease;
 }
 
-.botao-sair:hover {
+.botao-encerrar-sessao:hover {
     border-color: var(--accent);
     color: var(--accent);
+}
+
+.creditos-menu {
+    margin-top: auto;
+    padding-top: 20px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.creditos-menu strong {
+    color: var(--text-muted);
+    font-weight: 600;
 }
 
 /* ==========================================================================
@@ -77,7 +167,7 @@ body {
     width: 100%;
     max-width: 720px;
     margin: 0 auto;
-    padding: 32px 24px 100px 24px; /* padding-bottom grande: espaço pro botão flutuante não tampar a lista */
+    padding: 32px 24px 100px 24px;
 }
 
 /* Navegação entre meses */
@@ -85,42 +175,71 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 24px;
-    margin-bottom: 28px;
+    gap: 10px;
+    margin-bottom: 24px;
 }
 
 .rotulo-mes {
     font-family: var(--fonte-titulo);
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 600;
-    min-width: 160px;
+    min-width: 150px;
     text-align: center;
     text-transform: capitalize;
 }
 
-.seta-mes {
+.seta-mes,
+.seta-ano {
     background-color: var(--surface);
     border: 1px solid var(--borda);
     color: var(--text-primary);
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
-    font-size: 18px;
+    font-size: 16px;
     cursor: pointer;
     transition: border-color 0.25s ease, color 0.25s ease;
+    flex-shrink: 0;
 }
 
-.seta-mes:hover {
+.seta-ano {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.seta-mes:hover,
+.seta-ano:hover {
     border-color: var(--accent);
     color: var(--accent);
 }
 
 /* ==========================================================================
-   CARTÕES DE RESUMO
+   SALDO EM DESTAQUE
+   ========================================================================== */
+.cartao-saldo-principal {
+    background: linear-gradient(160deg, var(--surface) 0%, #1c1410 100%);
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.valor-saldo-grande {
+    font-family: var(--fonte-titulo);
+    font-size: clamp(28px, 5vw, 38px);
+    font-weight: 600;
+    color: var(--accent);
+}
+
+/* ==========================================================================
+   CARTÕES DE GANHOS E GASTOS
    ========================================================================== */
 .cartoes-resumo {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 14px;
     margin-bottom: 36px;
 }
@@ -153,12 +272,9 @@ body {
     color: var(--sucesso);
 }
 
+/* Vermelho suave — sinaliza saída de dinheiro sem ser agressivo */
 .cartao-gasto .valor-cartao {
-    color: var(--text-primary);
-}
-
-.cartao-saldo .valor-cartao {
-    color: var(--accent);
+    color: var(--gasto-cor);
 }
 
 /* ==========================================================================
@@ -205,12 +321,12 @@ body {
 }
 
 .item-lancamento.tipo-gasto .ponto-categoria {
-    background-color: var(--accent);
+    background-color: var(--gasto-cor);
 }
 
 .info-lancamento {
     flex: 1;
-    min-width: 0; /* permite que o texto trunque com ellipsis se for muito longo */
+    min-width: 0;
 }
 
 .descricao-lancamento {
@@ -240,7 +356,7 @@ body {
 }
 
 .item-lancamento.tipo-gasto .valor-lancamento {
-    color: var(--text-primary);
+    color: var(--gasto-cor);
 }
 
 .botao-excluir {
@@ -271,17 +387,18 @@ body {
     position: fixed;
     bottom: 28px;
     right: 28px;
-    width: 56px;
-    height: 56px;
+    width: 58px;
+    height: 58px;
     border-radius: 50%;
     background-color: var(--accent);
     color: #0A0A0A;
     border: none;
-    font-size: 28px;
+    font-size: 30px;
     line-height: 1;
     cursor: pointer;
-    box-shadow: 0 8px 24px rgba(217, 119, 87, 0.35);
+    box-shadow: 0 8px 24px rgba(217, 119, 87, 0.4);
     transition: background-color 0.25s ease, transform 0.2s ease;
+    z-index: 500;
 }
 
 .botao-adicionar:hover {
@@ -303,8 +420,6 @@ body {
     z-index: 999;
 }
 
-/* Controlado só por essa classe agora — sem depender do atributo hidden,
-   pra eliminar qualquer disputa de prioridade entre regras de CSS */
 .fundo-modal.aberto {
     display: flex;
 }
@@ -324,7 +439,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 .cabecalho-modal h3 {
@@ -347,13 +462,82 @@ body {
     color: var(--text-primary);
 }
 
+/* Etapa 1: pergunta + escolha de tipo */
+.etapa-escolha {
+    padding: 10px 0 6px 0;
+}
+
+.pergunta-escolha {
+    font-family: var(--fonte-titulo);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    text-align: center;
+}
+
+.botoes-escolha {
+    display: flex;
+    gap: 12px;
+}
+
+.botao-escolha-tipo {
+    flex: 1;
+    padding: 20px 0;
+    border-radius: 10px;
+    font-family: var(--fonte-corpo);
+    font-size: 15.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.2s ease;
+    border: 1px solid var(--borda);
+    background-color: var(--surface-alta);
+    color: var(--text-primary);
+}
+
+.botao-escolha-tipo:hover {
+    transform: translateY(-2px);
+}
+
+.botao-escolha-tipo.escolha-gasto:hover {
+    border-color: var(--gasto-cor);
+    color: var(--gasto-cor);
+}
+
+.botao-escolha-tipo.escolha-ganho:hover {
+    border-color: var(--sucesso);
+    color: var(--sucesso);
+}
+
+/* Selo no topo do formulário (etapa 2) mostrando o tipo escolhido, com opção de trocar */
+.botao-trocar-tipo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    font-family: var(--fonte-corpo);
+    font-size: 12.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    cursor: pointer;
+    margin-bottom: 16px;
+    padding: 0;
+}
+
+.botao-trocar-tipo:hover {
+    color: var(--accent);
+}
+
+/* Campo de valor — maior, mais confortável de tocar no celular */
 .valor-wrapper {
     display: flex;
     align-items: center;
     background-color: var(--surface-alta);
     border: 1px solid var(--borda);
-    border-radius: 8px;
-    padding: 0 14px;
+    border-radius: 12px;
+    padding: 4px 18px;
     transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
@@ -364,80 +548,32 @@ body {
 
 .prefixo-valor {
     color: var(--text-muted);
-    font-weight: 600;
-    font-size: 15px;
+    font-weight: 700;
+    font-size: 18px;
 }
 
 .valor-wrapper input {
     border: none !important;
     background: none !important;
     box-shadow: none !important;
-    padding-left: 8px !important;
+    padding: 16px 8px !important;
+    font-size: 22px !important;
+    font-weight: 700;
 }
 
-/* ==========================================================================
-   BANNER DO DIARISTA (registro rápido de ganho do dia)
-   ========================================================================== */
-.banner-diarista {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    background-color: var(--surface);
-    border: 1px solid var(--accent);
-    border-radius: 10px;
-    padding: 18px 20px;
-    margin-bottom: 24px;
-}
-
-.texto-banner-diarista {
+.opcoes-especiais-gasto {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-}
-
-.texto-banner-diarista strong {
-    font-size: 14.5px;
-    color: var(--text-primary);
-}
-
-.texto-banner-diarista span {
-    font-size: 13px;
-    color: var(--text-muted);
-}
-
-.acao-banner-diarista {
-    display: flex;
-    align-items: center;
     gap: 10px;
+    margin-bottom: 18px;
 }
 
-.acao-banner-diarista .valor-wrapper {
-    width: 140px;
-}
-
-.acao-banner-diarista .botao-enviar {
-    width: auto;
-    padding: 12px 20px;
-    margin: 0;
-    white-space: nowrap;
-}
-
-@media (max-width: 600px) {
-    .banner-diarista {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .acao-banner-diarista {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .acao-banner-diarista .valor-wrapper {
-        width: 100%;
-    }
+.opcoes-especiais-gasto .item-checkbox {
+    background-color: var(--surface-alta);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13.5px;
 }
 
 /* ==========================================================================
@@ -448,34 +584,23 @@ body {
         padding: 16px 20px;
     }
 
-    .email-usuario {
-        display: none; /* some no celular pra não espremer o layout, "Sair" continua visível */
-    }
-
     .conteudo-principal {
         padding: 24px 16px 100px 16px;
-    }
-
-    .cartoes-resumo {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-
-    .cartao-resumo {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        padding: 14px 16px;
     }
 
     .botao-adicionar {
         bottom: 20px;
         right: 20px;
-        width: 52px;
-        height: 52px;
+        width: 54px;
+        height: 54px;
     }
 
     .modal-lancamento {
         padding: 22px;
+    }
+
+    .rotulo-mes {
+        font-size: 16px;
+        min-width: 120px;
     }
 }

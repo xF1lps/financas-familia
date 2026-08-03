@@ -1,6 +1,3 @@
-// ==========================================================================
-// Importa a conexão com o Firebase e as funções específicas que vamos usar
-// ==========================================================================
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -9,14 +6,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ==========================================================================
-// CATEGORIAS PADRÃO (fixas)
-// Essas já vêm prontas pra qualquer usuário novo, sem precisar cadastrar nada.
-// As categorias CRIADAS pela pessoa (customizadas) ficam salvas no Firestore,
-// dentro de usuarios/{uid}/categorias, e se somam a essa lista abaixo.
+// CATEGORIAS PADRÃO
+// Só sobrou "Outros" — todo o resto vem da opção "+ Nova categoria", que a
+// pessoa cria na hora e fica salva pras próximas vezes.
 // ==========================================================================
 const CATEGORIAS_PADRAO = {
-    gasto: ["Alimentação", "Transporte", "Moradia", "Saúde", "Lazer", "Besteiras", "Contas Fixas", "Outros"],
-    ganho: ["Salário", "Extra", "Presente", "Outros"]
+    gasto: ["Outros"],
+    ganho: ["Outros"]
 };
 
 const NOMES_MESES = [
@@ -32,6 +28,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const emailUsuario = document.getElementById("email-usuario");
     const botaoSair = document.getElementById("botao-sair");
 
+    const botaoHamburguer = document.getElementById("botao-hamburguer");
+    const overlayMenu = document.getElementById("overlay-menu");
+    const painelMenu = document.getElementById("painel-menu");
+    const botaoFecharMenuLateral = document.getElementById("botao-fechar-menu-lateral");
+
+    const anoAnteriorBtn = document.getElementById("ano-anterior");
+    const anoProximoBtn = document.getElementById("ano-proximo");
     const mesAnteriorBtn = document.getElementById("mes-anterior");
     const mesProximoBtn = document.getElementById("mes-proximo");
     const rotuloMes = document.getElementById("rotulo-mes");
@@ -51,33 +54,42 @@ document.addEventListener("DOMContentLoaded", function () {
     const botaoFecharModal = document.getElementById("botao-fechar-modal");
     const fundoModal = document.getElementById("fundo-modal");
 
-    const tipoGastoBtn = document.getElementById("tipo-gasto");
-    const tipoGanhoBtn = document.getElementById("tipo-ganho");
+    const etapaEscolha = document.getElementById("etapa-escolha");
+    const perguntaEscolha = document.getElementById("pergunta-escolha");
+    const botoesEscolha = document.querySelectorAll(".botao-escolha-tipo");
+    const botaoTrocarTipo = document.getElementById("botao-trocar-tipo");
 
     const formulario = document.getElementById("formulario-lancamento");
+    const rotuloValor = document.getElementById("rotulo-valor");
     const campoValor = document.getElementById("campo-valor");
+    const campoParcelasWrapper = document.getElementById("campo-parcelas-wrapper");
+    const campoParcelas = document.getElementById("campo-parcelas");
     const campoCategoria = document.getElementById("campo-categoria");
     const campoNovaCategoriaWrapper = document.getElementById("campo-nova-categoria-wrapper");
     const campoNovaCategoria = document.getElementById("campo-nova-categoria");
     const campoDescricao = document.getElementById("campo-descricao");
     const campoData = document.getElementById("campo-data");
+    const opcoesEspeciaisGasto = document.getElementById("opcoes-especiais-gasto");
+    const campoFixo = document.getElementById("campo-fixo");
+    const campoParcelado = document.getElementById("campo-parcelado");
     const mensagemAviso = document.getElementById("mensagem-aviso-modal");
     const botaoSalvar = document.getElementById("botao-salvar-lancamento");
     const textoBotaoSalvar = botaoSalvar.querySelector(".texto-botao");
     const spinnerSalvar = botaoSalvar.querySelector(".spinner-botao");
 
     // ==========================================================================
-    // 2. ESTADO DA TELA (variáveis que mudam conforme a pessoa usa o app)
+    // 2. ESTADO DA TELA
     // ==========================================================================
-    let uidAtual = null;                 // ID do usuário logado
-    let mesSelecionado = new Date();     // Mês que está sendo exibido no momento
-    let tipoSelecionado = "gasto";       // Aba ativa no modal: "gasto" ou "ganho"
-    let categoriasCustomizadas = { gasto: [], ganho: [] }; // Vêm do Firestore
-    let pararDeEscutar = null;           // Função pra "desligar" o listener em tempo real do mês anterior
-    let rendaEhDiaria = false;           // true se a pessoa marcou "Diarista" no onboarding
+    let uidAtual = null;
+    let mesSelecionado = new Date();
+    let tipoSelecionado = "gasto";
+    let categoriasCustomizadas = { gasto: [], ganho: [] };
+    let pararDeEscutar = null;
+    let rendaEhDiaria = false;
+    let primeiroNome = "";
 
     // ==========================================================================
-    // 3. VERIFICAR LOGIN — se não estiver logado, manda pra tela de login
+    // 3. VERIFICAR LOGIN
     // ==========================================================================
     onAuthStateChanged(auth, async (usuario) => {
         if (!usuario) {
@@ -88,13 +100,15 @@ document.addEventListener("DOMContentLoaded", function () {
         uidAtual = usuario.uid;
         emailUsuario.textContent = usuario.email;
 
-        // Confere se o onboarding já foi preenchido — se não, manda pra lá antes
         const perfilSnapshot = await getDoc(doc(db, "usuarios", uidAtual));
         if (!perfilSnapshot.exists() || perfilSnapshot.data().onboardingCompleto !== true) {
             window.location.href = "onboarding.html";
             return;
         }
-        rendaEhDiaria = perfilSnapshot.data().renda === "diaria";
+
+        const perfil = perfilSnapshot.data();
+        rendaEhDiaria = perfil.renda === "diaria";
+        primeiroNome = (perfil.nome || "").trim().split(" ")[0] || "";
 
         await carregarCategoriasCustomizadas();
         atualizarRotuloMes();
@@ -107,14 +121,32 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ==========================================================================
-    // 4. NAVEGAÇÃO ENTRE MESES
+    // 4. MENU LATERAL (hambúrguer)
     // ==========================================================================
-    mesAnteriorBtn.addEventListener("click", () => mudarMes(-1));
-    mesProximoBtn.addEventListener("click", () => mudarMes(1));
+    function abrirMenuLateral() {
+        painelMenu.classList.add("aberto");
+        overlayMenu.classList.add("aberto");
+    }
 
-    function mudarMes(direcao) {
-        // Cria uma nova data baseada no mês atual, somando ou subtraindo 1 mês
-        mesSelecionado = new Date(mesSelecionado.getFullYear(), mesSelecionado.getMonth() + direcao, 1);
+    function fecharMenuLateral() {
+        painelMenu.classList.remove("aberto");
+        overlayMenu.classList.remove("aberto");
+    }
+
+    botaoHamburguer.addEventListener("click", abrirMenuLateral);
+    botaoFecharMenuLateral.addEventListener("click", fecharMenuLateral);
+    overlayMenu.addEventListener("click", fecharMenuLateral);
+
+    // ==========================================================================
+    // 5. NAVEGAÇÃO ENTRE MESES E ANOS
+    // ==========================================================================
+    mesAnteriorBtn.addEventListener("click", () => mudarPeriodo(-1));
+    mesProximoBtn.addEventListener("click", () => mudarPeriodo(1));
+    anoAnteriorBtn.addEventListener("click", () => mudarPeriodo(-12));
+    anoProximoBtn.addEventListener("click", () => mudarPeriodo(12));
+
+    function mudarPeriodo(mesesParaSomar) {
+        mesSelecionado = new Date(mesSelecionado.getFullYear(), mesSelecionado.getMonth() + mesesParaSomar, 1);
         atualizarRotuloMes();
         escutarLancamentosDoMes();
     }
@@ -124,7 +156,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ==========================================================================
-    // 5. CATEGORIAS — carregar as customizadas e popular o <select> do modal
+    // 6. CATEGORIAS
     // ==========================================================================
     async function carregarCategoriasCustomizadas() {
         const referencia = collection(db, "usuarios", uidAtual, "categorias");
@@ -150,7 +182,6 @@ document.addEventListener("DOMContentLoaded", function () {
             campoCategoria.appendChild(opcao);
         });
 
-        // Opção especial no final, pra criar uma categoria nova na hora
         const opcaoNova = document.createElement("option");
         opcaoNova.value = "__nova__";
         opcaoNova.textContent = "+ Nova categoria";
@@ -164,30 +195,23 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ==========================================================================
-    // 6. ALTERNAR ENTRE AS ABAS "GASTO" E "GANHO" DENTRO DO MODAL
-    // ==========================================================================
-    function selecionarTipo(tipo) {
-        tipoSelecionado = tipo;
-        tipoGastoBtn.classList.toggle("ativa", tipo === "gasto");
-        tipoGanhoBtn.classList.toggle("ativa", tipo === "ganho");
-        popularSelectCategorias();
-    }
-
-    tipoGastoBtn.addEventListener("click", () => selecionarTipo("gasto"));
-    tipoGanhoBtn.addEventListener("click", () => selecionarTipo("ganho"));
-
-    // ==========================================================================
-    // 7. ABRIR E FECHAR O MODAL
+    // 7. MODAL — ETAPA 1 (escolha) E ETAPA 2 (formulário)
     // ==========================================================================
     function abrirModal() {
+        // Sempre volta pra etapa 1 quando abre, mesmo que tenha ficado no meio
+        // do preenchimento da última vez
+        etapaEscolha.hidden = false;
+        formulario.hidden = true;
         formulario.reset();
         esconderAviso();
-        selecionarTipo("gasto");
         campoNovaCategoriaWrapper.hidden = true;
+        campoParcelasWrapper.hidden = true;
+        campoFixo.checked = false;
+        campoParcelado.checked = false;
 
-        // Preenche a data com o dia de hoje, no formato que o input[type=date] espera (AAAA-MM-DD)
-        const hoje = new Date();
-        campoData.value = hoje.toISOString().split("T")[0];
+        perguntaEscolha.textContent = primeiroNome
+            ? `${primeiroNome}, deseja registrar um:`
+            : "Deseja registrar um:";
 
         fundoModal.classList.add("aberto");
     }
@@ -196,16 +220,58 @@ document.addEventListener("DOMContentLoaded", function () {
         fundoModal.classList.remove("aberto");
     }
 
+    function irParaFormulario(tipo) {
+        tipoSelecionado = tipo;
+        etapaEscolha.hidden = true;
+        formulario.hidden = false;
+
+        botaoTrocarTipo.textContent = tipo === "gasto" ? "← Gasto (trocar)" : "← Ganho (trocar)";
+        rotuloValor.textContent = "Valor";
+        opcoesEspeciaisGasto.hidden = tipo !== "gasto";
+
+        popularSelectCategorias();
+
+        const hoje = new Date();
+        campoData.value = hoje.toISOString().split("T")[0];
+        campoValor.focus();
+    }
+
+    botoesEscolha.forEach((botao) => {
+        botao.addEventListener("click", () => irParaFormulario(botao.dataset.tipo));
+    });
+
+    botaoTrocarTipo.addEventListener("click", () => {
+        etapaEscolha.hidden = false;
+        formulario.hidden = true;
+    });
+
     botaoAbrirModal.addEventListener("click", abrirModal);
     botaoFecharModal.addEventListener("click", fecharModal);
 
-    // Clicar no fundo escurecido (fora do cartão branco) também fecha
     fundoModal.addEventListener("click", (evento) => {
         if (evento.target === fundoModal) fecharModal();
     });
 
+    // Gasto fixo e parcelamento são mutuamente exclusivos — marcar um desmarca o outro
+    campoFixo.addEventListener("change", () => {
+        if (campoFixo.checked) campoParcelado.checked = false;
+        atualizarVisibilidadeParcelas();
+    });
+
+    campoParcelado.addEventListener("change", () => {
+        if (campoParcelado.checked) campoFixo.checked = false;
+        atualizarVisibilidadeParcelas();
+    });
+
+    function atualizarVisibilidadeParcelas() {
+        const parcelando = campoParcelado.checked;
+        campoParcelasWrapper.hidden = !parcelando;
+        campoParcelas.required = parcelando;
+        rotuloValor.textContent = parcelando ? "Valor total da compra" : "Valor";
+    }
+
     // ==========================================================================
-    // 8. MENSAGENS DE AVISO/ERRO DENTRO DO MODAL
+    // 8. MENSAGENS DE AVISO
     // ==========================================================================
     function mostrarAviso(texto) {
         mensagemAviso.textContent = texto;
@@ -223,21 +289,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ==========================================================================
-    // 9. SALVAR UM NOVO LANÇAMENTO (o coração do dashboard)
+    // 9. SALVAR LANÇAMENTO (normal, fixo ou parcelado)
     // ==========================================================================
     formulario.addEventListener("submit", async (evento) => {
         evento.preventDefault();
         esconderAviso();
 
-        const valor = parseFloat(campoValor.value);
-        if (!valor || valor <= 0) {
+        const valorDigitado = parseFloat(campoValor.value);
+        if (!valorDigitado || valorDigitado <= 0) {
             mostrarAviso("Digita um valor maior que zero.");
             return;
         }
 
         let categoriaFinal = campoCategoria.value;
-
-        // Se a pessoa escolheu "+ Nova categoria", valida e usa o texto digitado
         if (categoriaFinal === "__nova__") {
             const nomeNovaCategoria = campoNovaCategoria.value.trim();
             if (!nomeNovaCategoria) {
@@ -247,10 +311,17 @@ document.addEventListener("DOMContentLoaded", function () {
             categoriaFinal = nomeNovaCategoria;
         }
 
+        const ehParcelado = tipoSelecionado === "gasto" && campoParcelado.checked;
+        const numeroParcelas = ehParcelado ? parseInt(campoParcelas.value, 10) : 1;
+
+        if (ehParcelado && (!numeroParcelas || numeroParcelas < 2)) {
+            mostrarAviso("Informa um número de parcelas válido (mínimo 2).");
+            return;
+        }
+
         definirCarregando(true);
 
         try {
-            // Se for uma categoria nova, salva ela primeiro, pra aparecer nas próximas vezes
             if (campoCategoria.value === "__nova__") {
                 await addDoc(collection(db, "usuarios", uidAtual, "categorias"), {
                     nome: categoriaFinal,
@@ -259,18 +330,23 @@ document.addEventListener("DOMContentLoaded", function () {
                 categoriasCustomizadas[tipoSelecionado].push(categoriaFinal);
             }
 
-            // Converte a data digitada (texto "AAAA-MM-DD") num horário válido do dia,
-            // e depois num Timestamp do Firestore (formato que ele entende)
             const dataEscolhida = new Date(`${campoData.value}T12:00:00`);
+            const descricaoBase = campoDescricao.value.trim();
 
-            await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
-                tipo: tipoSelecionado,
-                valor: valor,
-                categoria: categoriaFinal,
-                descricao: campoDescricao.value.trim(),
-                data: Timestamp.fromDate(dataEscolhida),
-                criadoEm: serverTimestamp()
-            });
+            if (ehParcelado) {
+                await salvarParcelado(valorDigitado, numeroParcelas, categoriaFinal, descricaoBase, dataEscolhida);
+            } else if (campoFixo.checked) {
+                await salvarFixo(valorDigitado, categoriaFinal, descricaoBase, dataEscolhida);
+            } else {
+                await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
+                    tipo: tipoSelecionado,
+                    valor: valorDigitado,
+                    categoria: categoriaFinal,
+                    descricao: descricaoBase,
+                    data: Timestamp.fromDate(dataEscolhida),
+                    criadoEm: serverTimestamp()
+                });
+            }
 
             fecharModal();
 
@@ -281,13 +357,63 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    // Divide o valor total em N parcelas iguais, lançando uma em cada mês
+    // seguinte. A última parcela absorve a diferença de centavos do
+    // arredondamento, pra soma bater certinho com o valor total.
+    async function salvarParcelado(valorTotal, numeroParcelas, categoria, descricaoBase, dataInicial) {
+        const valorParcela = Math.floor((valorTotal / numeroParcelas) * 100) / 100;
+        const diferencaCentavos = Math.round((valorTotal - valorParcela * numeroParcelas) * 100) / 100;
+        const grupoId = `parc_${Date.now()}`;
+
+        for (let indice = 0; indice < numeroParcelas; indice++) {
+            const dataDaParcela = new Date(dataInicial.getFullYear(), dataInicial.getMonth() + indice, dataInicial.getDate(), 12);
+            const ehUltima = indice === numeroParcelas - 1;
+            const valorDessaParcela = ehUltima ? valorParcela + diferencaCentavos : valorParcela;
+            const descricaoFinal = `${descricaoBase || categoria} (Parcela ${indice + 1}/${numeroParcelas})`;
+
+            await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
+                tipo: "gasto",
+                valor: valorDessaParcela,
+                categoria,
+                descricao: descricaoFinal,
+                data: Timestamp.fromDate(dataDaParcela),
+                grupoParcelamentoId: grupoId,
+                criadoEm: serverTimestamp()
+            });
+        }
+    }
+
+    // Repete o mesmo gasto pelos próximos 12 meses (contando o mês atual).
+    // Ajusta o dia automaticamente se o mês de destino for mais curto
+    // (ex: lançado dia 31, em fevereiro cai no último dia do mês).
+    async function salvarFixo(valor, categoria, descricaoBase, dataInicial) {
+        const grupoId = `fixo_${Date.now()}`;
+        const diaOriginal = dataInicial.getDate();
+
+        for (let indice = 0; indice < 12; indice++) {
+            const anoDestino = dataInicial.getFullYear();
+            const mesDestino = dataInicial.getMonth() + indice;
+            const ultimoDiaDoMes = new Date(anoDestino, mesDestino + 1, 0).getDate();
+            const diaFinal = Math.min(diaOriginal, ultimoDiaDoMes);
+            const dataDoMes = new Date(anoDestino, mesDestino, diaFinal, 12);
+
+            await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
+                tipo: "gasto",
+                valor,
+                categoria,
+                descricao: descricaoBase || categoria,
+                data: Timestamp.fromDate(dataDoMes),
+                fixo: true,
+                grupoFixoId: grupoId,
+                criadoEm: serverTimestamp()
+            });
+        }
+    }
+
     // ==========================================================================
     // 10. ESCUTAR OS LANÇAMENTOS DO MÊS SELECIONADO, EM TEMPO REAL
-    // "Em tempo real" quer dizer: se um lançamento for salvo ou excluído, a lista
-    // e os totais atualizam sozinhos na tela, sem precisar recarregar a página.
     // ==========================================================================
     function escutarLancamentosDoMes() {
-        // Se já existia um listener rodando (de um mês anterior), desliga ele antes
         if (pararDeEscutar) pararDeEscutar();
 
         const inicioMes = new Date(mesSelecionado.getFullYear(), mesSelecionado.getMonth(), 1);
@@ -309,9 +435,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ==========================================================================
-    // BANNER DO DIARISTA — mostra só se: a pessoa marcou "Diarista" no
-    // onboarding, o mês exibido é o mês atual, e ainda não tem nenhum ganho
-    // lançado com data de hoje.
+    // BANNER DO DIARISTA
     // ==========================================================================
     function atualizarBannerDiarista(documentos) {
         if (!rendaEhDiaria) {
@@ -330,9 +454,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const jaTemGanhoHoje = documentos.some((documento) => {
             const dados = documento.data();
-            const dataLancamento = dados.data.toDate();
-            return dados.tipo === "ganho"
-                && dataLancamento.toDateString() === hoje.toDateString();
+            return dados.tipo === "ganho" && dados.data.toDate().toDateString() === hoje.toDateString();
         });
 
         bannerDiarista.hidden = jaTemGanhoHoje;
@@ -388,8 +510,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Um único listener de clique na lista inteira (mais eficiente do que
-    // colocar um listener em cada botão de excluir individualmente)
     listaLancamentos.addEventListener("click", async (evento) => {
         const botao = evento.target.closest(".botao-excluir");
         if (!botao) return;
@@ -399,7 +519,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ==========================================================================
-    // 12. CALCULAR OS TOTAIS DO MÊS (ganhos, gastos, saldo)
+    // 12. CALCULAR OS TOTAIS DO MÊS
     // ==========================================================================
     function calcularTotais(documentos) {
         let totalGanhos = 0;
@@ -420,7 +540,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ==========================================================================
-    // 13. FORMATAR NÚMERO COMO MOEDA BRASILEIRA (ex: 1234.5 → "R$ 1.234,50")
+    // 13. FORMATAR MOEDA
     // ==========================================================================
     function formatarMoeda(valor) {
         return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

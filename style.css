@@ -289,7 +289,7 @@ body#pagina-login {
     border-radius: 8px;
     padding: 13px 14px;
     font-family: var(--fonte-corpo);
-    font-size: 15px;
+    font-size: 16px;
     color: var(--text-primary);
     transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }

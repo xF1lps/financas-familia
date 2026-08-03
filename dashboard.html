@@ -2,14 +2,13 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Finanças</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Reaproveita as cores/fontes e os componentes de formulário já criados na tela de login -->
     <link rel="stylesheet" href="variaveis.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="dashboard.css">
@@ -22,18 +21,31 @@
     <div class="app-shell">
 
         <!-- ========================================================== -->
-        <!-- BARRA SUPERIOR: nome do app + e-mail de quem está logado + sair -->
+        <!-- BARRA SUPERIOR: nome do app + botão hambúrguer -->
         <!-- ========================================================== -->
         <header class="topo-app">
             <div class="marca-topo">
                 <span class="ponto-marca"></span>
                 Finanças
             </div>
-            <div class="usuario-topo">
-                <span class="email-usuario" id="email-usuario"></span>
-                <button class="botao-sair" id="botao-sair">Sair</button>
-            </div>
+            <button class="botao-hamburguer" id="botao-hamburguer" aria-label="Abrir menu">
+                <span></span><span></span><span></span>
+            </button>
         </header>
+
+        <!-- ========================================================== -->
+        <!-- MENU LATERAL: e-mail, sair, créditos -->
+        <!-- ========================================================== -->
+        <div class="overlay-menu" id="overlay-menu"></div>
+        <aside class="painel-menu" id="painel-menu">
+            <button class="botao-fechar-menu-lateral" id="botao-fechar-menu-lateral" aria-label="Fechar menu">✕</button>
+            <div class="topo-painel-menu">
+                <span class="ponto-marca"></span>
+                <span class="email-usuario" id="email-usuario"></span>
+            </div>
+            <button class="botao-encerrar-sessao" id="botao-sair">Encerrar Sessão</button>
+            <div class="creditos-menu">Desenvolvido por <strong>Philipe Emanuel</strong></div>
+        </aside>
 
         <main class="conteudo-principal">
 
@@ -54,16 +66,26 @@
             </section>
 
             <!-- ========================================================== -->
-            <!-- NAVEGAÇÃO ENTRE MESES -->
+            <!-- NAVEGAÇÃO ENTRE MESES (com salto de ano pra buscas retroativas) -->
             <!-- ========================================================== -->
             <section class="navegacao-mes">
+                <button class="seta-ano" id="ano-anterior" aria-label="Ano anterior">«</button>
                 <button class="seta-mes" id="mes-anterior" aria-label="Mês anterior">‹</button>
                 <h2 class="rotulo-mes" id="rotulo-mes">—</h2>
                 <button class="seta-mes" id="mes-proximo" aria-label="Próximo mês">›</button>
+                <button class="seta-ano" id="ano-proximo" aria-label="Próximo ano">»</button>
             </section>
 
             <!-- ========================================================== -->
-            <!-- CARTÕES DE RESUMO: ganhos, gastos e saldo do mês selecionado -->
+            <!-- SALDO EM DESTAQUE -->
+            <!-- ========================================================== -->
+            <section class="cartao-saldo-principal">
+                <span class="rotulo-cartao">Saldo do mês</span>
+                <span class="valor-saldo-grande" id="total-saldo">R$ 0,00</span>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- CARTÕES DE GANHOS E GASTOS -->
             <!-- ========================================================== -->
             <section class="cartoes-resumo">
                 <div class="cartao-resumo cartao-ganho">
@@ -73,10 +95,6 @@
                 <div class="cartao-resumo cartao-gasto">
                     <span class="rotulo-cartao">Gastos</span>
                     <span class="valor-cartao" id="total-gastos">R$ 0,00</span>
-                </div>
-                <div class="cartao-resumo cartao-saldo">
-                    <span class="rotulo-cartao">Saldo</span>
-                    <span class="valor-cartao" id="total-saldo">R$ 0,00</span>
                 </div>
             </section>
 
@@ -97,7 +115,7 @@
     </div>
 
     <!-- ========================================================== -->
-    <!-- MODAL: formulário de novo lançamento (fica escondido até clicar no +) -->
+    <!-- MODAL: novo lançamento (etapa 1: escolha / etapa 2: formulário) -->
     <!-- ========================================================== -->
     <div class="fundo-modal" id="fundo-modal">
         <div class="modal-lancamento">
@@ -106,19 +124,31 @@
                 <button class="botao-fechar-modal" id="botao-fechar-modal" aria-label="Fechar">✕</button>
             </div>
 
-            <!-- Alterna entre registrar um Gasto ou um Ganho -->
-            <div class="abas-acesso">
-                <button type="button" class="aba-botao ativa" id="tipo-gasto" data-tipo="gasto">Gasto</button>
-                <button type="button" class="aba-botao" id="tipo-ganho" data-tipo="ganho">Ganho</button>
+            <!-- ETAPA 1: pergunta personalizada + escolha de Gasto ou Ganho -->
+            <div class="etapa-escolha" id="etapa-escolha">
+                <p class="pergunta-escolha" id="pergunta-escolha">Deseja registrar um:</p>
+                <div class="botoes-escolha">
+                    <button type="button" class="botao-escolha-tipo escolha-gasto" data-tipo="gasto">Gasto</button>
+                    <button type="button" class="botao-escolha-tipo escolha-ganho" data-tipo="ganho">Ganho</button>
+                </div>
             </div>
 
-            <form id="formulario-lancamento">
+            <!-- ETAPA 2: formulário em si, some no início -->
+            <form id="formulario-lancamento" hidden>
+                <button type="button" class="botao-trocar-tipo" id="botao-trocar-tipo"></button>
+
                 <div class="campo">
-                    <label for="campo-valor">Valor</label>
+                    <label for="campo-valor" id="rotulo-valor">Valor</label>
                     <div class="valor-wrapper">
                         <span class="prefixo-valor">R$</span>
                         <input type="number" id="campo-valor" step="0.01" min="0" placeholder="0,00" required>
                     </div>
+                </div>
+
+                <!-- Só aparece quando "Parcelar compra" está marcado -->
+                <div class="campo" id="campo-parcelas-wrapper" hidden>
+                    <label for="campo-parcelas">Número de parcelas</label>
+                    <input type="number" id="campo-parcelas" min="2" max="48" step="1" placeholder="Ex: 5">
                 </div>
 
                 <div class="campo">
@@ -140,6 +170,18 @@
                 <div class="campo">
                     <label for="campo-data">Data</label>
                     <input type="date" id="campo-data" required>
+                </div>
+
+                <!-- Só aparecem para Gasto -->
+                <div class="opcoes-especiais-gasto" id="opcoes-especiais-gasto">
+                    <label class="item-checkbox">
+                        <input type="checkbox" id="campo-fixo">
+                        Gasto fixo (repete nos próximos 12 meses)
+                    </label>
+                    <label class="item-checkbox">
+                        <input type="checkbox" id="campo-parcelado">
+                        Parcelar essa compra
+                    </label>
                 </div>
 
                 <div class="mensagem-aviso" id="mensagem-aviso-modal" role="alert"></div>
