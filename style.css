@@ -42,13 +42,69 @@ body#pagina-login {
     display: none;
 }
 
-.spinner-carregamento {
-    width: 32px;
-    height: 32px;
-    border: 3px solid rgba(217, 119, 87, 0.25);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: girar-spinner 0.7s linear infinite;
+.conteudo-carregamento {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.selo-marca-carregamento {
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    opacity: 0;
+    animation: aparecer-selo-carregamento 0.5s ease forwards;
+}
+
+.grafico-carregamento {
+    width: 160px;
+    height: auto;
+}
+
+#linha-carregamento {
+    stroke-dasharray: 320;
+    animation: ciclo-linha-carregamento 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.ponto-carregamento {
+    animation: ciclo-ponto-carregamento 2.2s ease infinite;
+}
+
+@keyframes aparecer-selo-carregamento {
+    to { opacity: 1; }
+}
+
+/* A linha desenha, segura um instante completa, some rapidinho e recomeça —
+   dá a sensação de "carregando" sem ficar repetitivo demais */
+@keyframes ciclo-linha-carregamento {
+    0%   { stroke-dashoffset: 320; opacity: 1; }
+    55%  { stroke-dashoffset: 0;   opacity: 1; }
+    75%  { stroke-dashoffset: 0;   opacity: 0; }
+    76%  { stroke-dashoffset: 320; opacity: 0; }
+    100% { stroke-dashoffset: 320; opacity: 1; }
+}
+
+/* O pontinho branco no fim da linha só aparece quando ela termina de desenhar,
+   dá uma piscadinha, e some junto com o reinício do ciclo */
+@keyframes ciclo-ponto-carregamento {
+    0%, 50% { opacity: 0; transform: scale(0.6); }
+    60%     { opacity: 1; transform: scale(1.2); }
+    70%     { opacity: 1; transform: scale(1); }
+    75%     { opacity: 0; }
+    100%    { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #linha-carregamento,
+    .ponto-carregamento,
+    .selo-marca-carregamento {
+        animation: none !important;
+        opacity: 1;
+        stroke-dashoffset: 0;
+    }
 }
 
 /* ==========================================================================
