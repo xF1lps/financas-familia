@@ -47,6 +47,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const listaLancamentos = document.getElementById("lista-lancamentos");
     const listaVazia = document.getElementById("lista-vazia");
+    const linkExtrato = document.getElementById("link-extrato");
 
     const bannerDiarista = document.getElementById("banner-diarista");
     const valorDiarioInput = document.getElementById("valor-diario");
@@ -178,6 +179,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         mesProximoBtn.disabled = jaNoLimite;
         anoProximoBtn.disabled = jaNoLimite;
+
+        // O link "Ver extrato completo" da tela inicial sempre abre já filtrado
+        // no mês que está sendo visto no momento (o extrato em si permite trocar
+        // o filtro depois, incluindo ver todos os meses)
+        const mesParaUrl = String(mesSelecionado.getMonth() + 1).padStart(2, "0");
+        linkExtrato.href = `extrato.html?mes=${mesSelecionado.getFullYear()}-${mesParaUrl}`;
     }
 
     // ==========================================================================

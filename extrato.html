@@ -37,8 +37,23 @@
         </header>
 
         <main class="conteudo-principal">
+
+            <div class="filtros-extrato">
+                <div class="campo-filtro">
+                    <label for="filtro-mes">Mês</label>
+                    <div class="filtro-mes-wrapper">
+                        <input type="month" id="filtro-mes">
+                        <button type="button" id="limpar-filtro-mes" class="botao-limpar-filtro" title="Ver todos os meses">✕</button>
+                    </div>
+                </div>
+                <div class="campo-filtro">
+                    <label for="filtro-valor">Buscar por valor</label>
+                    <input type="number" id="filtro-valor" step="0.01" placeholder="Ex: 50">
+                </div>
+            </div>
+
             <ul class="lista-lancamentos" id="lista-extrato"></ul>
-            <p class="lista-vazia" id="extrato-vazio" hidden>Nenhum lançamento registrado ainda.</p>
+            <p class="lista-vazia" id="extrato-vazio" hidden>Nenhum lançamento encontrado com esse filtro.</p>
         </main>
     </div>
 

@@ -298,8 +298,12 @@ body#pagina-login {
 /* Normaliza o input de data — em alguns celulares ele nasce maior que os
    outros campos por causa do ícone de calendário nativo */
 .campo input[type="date"] {
-    min-height: 48px;
+    height: 50px;
     box-sizing: border-box;
+    padding: 0 14px;
+    line-height: 50px;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 /* Remove o contorno azul padrão do navegador em qualquer campo focado
