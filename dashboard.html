@@ -18,11 +18,19 @@
 </head>
 <body>
 
+    <div class="tela-carregamento" id="tela-carregamento">
+        <div class="conteudo-carregamento">
+            <span class="selo-marca-carregamento">Finanças</span>
+            <svg class="grafico-carregamento" viewBox="0 0 220 90" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path id="linha-carregamento" d="M8 70 C 40 74, 60 50, 85 54 S 130 28, 150 32 S 195 10, 212 14"
+                      stroke="#D97757" stroke-width="3" stroke-linecap="round" fill="none"/>
+                <circle class="ponto-carregamento" cx="212" cy="14" r="4" fill="#FFFFFF"/>
+            </svg>
+        </div>
+    </div>
+
     <div class="app-shell">
 
-        <!-- ========================================================== -->
-        <!-- BARRA SUPERIOR: nome do app + botão hambúrguer -->
-        <!-- ========================================================== -->
         <header class="topo-app">
             <div class="marca-topo">
                 <span class="ponto-marca"></span>
@@ -33,9 +41,6 @@
             </button>
         </header>
 
-        <!-- ========================================================== -->
-        <!-- MENU LATERAL: e-mail, sair, créditos -->
-        <!-- ========================================================== -->
         <div class="overlay-menu" id="overlay-menu"></div>
         <aside class="painel-menu" id="painel-menu">
             <button class="botao-fechar-menu-lateral" id="botao-fechar-menu-lateral" aria-label="Fechar menu">✕</button>
@@ -43,14 +48,13 @@
                 <span class="ponto-marca"></span>
                 <span class="email-usuario" id="email-usuario"></span>
             </div>
+            <a href="extrato.html" class="botao-encerrar-sessao">Ver Extrato Completo</a>
             <button class="botao-encerrar-sessao" id="botao-sair">Encerrar Sessão</button>
             <div class="creditos-menu">Desenvolvido por <strong>Philipe Emanuel</strong></div>
         </aside>
 
         <main class="conteudo-principal">
 
-            <!-- Só aparece pra quem marcou "Diarista" no onboarding, e só quando
-                 ainda não registrou o ganho de hoje -->
             <section class="banner-diarista" id="banner-diarista" hidden>
                 <div class="texto-banner-diarista">
                     <strong>Bora registrar o ganho de hoje?</strong>
@@ -65,9 +69,6 @@
                 </div>
             </section>
 
-            <!-- ========================================================== -->
-            <!-- NAVEGAÇÃO ENTRE MESES (com salto de ano pra buscas retroativas) -->
-            <!-- ========================================================== -->
             <section class="navegacao-mes">
                 <button class="seta-ano" id="ano-anterior" aria-label="Ano anterior">«</button>
                 <button class="seta-mes" id="mes-anterior" aria-label="Mês anterior">‹</button>
@@ -76,17 +77,11 @@
                 <button class="seta-ano" id="ano-proximo" aria-label="Próximo ano">»</button>
             </section>
 
-            <!-- ========================================================== -->
-            <!-- SALDO EM DESTAQUE -->
-            <!-- ========================================================== -->
             <section class="cartao-saldo-principal">
                 <span class="rotulo-cartao">Saldo do mês</span>
                 <span class="valor-saldo-grande" id="total-saldo">R$ 0,00</span>
             </section>
 
-            <!-- ========================================================== -->
-            <!-- CARTÕES DE GANHOS E GASTOS -->
-            <!-- ========================================================== -->
             <section class="cartoes-resumo">
                 <div class="cartao-resumo cartao-ganho">
                     <span class="rotulo-cartao">Ganhos</span>
@@ -98,33 +93,26 @@
                 </div>
             </section>
 
-            <!-- ========================================================== -->
-            <!-- LISTA DE LANÇAMENTOS DO MÊS -->
-            <!-- ========================================================== -->
             <section class="lista-lancamentos-secao">
-                <h3 class="titulo-secao">Lançamentos</h3>
+                <h3 class="titulo-secao">Lançamentos recentes</h3>
                 <ul class="lista-lancamentos" id="lista-lancamentos"></ul>
                 <p class="lista-vazia" id="lista-vazia" hidden>Nenhum lançamento neste mês ainda. Toca no + para adicionar o primeiro.</p>
+                <a href="extrato.html" class="botao-ver-extrato">Ver extrato completo →</a>
             </section>
 
         </main>
 
-        <!-- Botão flutuante fixo, sempre visível, pra adicionar um novo lançamento -->
         <button class="botao-adicionar" id="botao-abrir-modal" aria-label="Adicionar lançamento">+</button>
 
     </div>
 
-    <!-- ========================================================== -->
-    <!-- MODAL: novo lançamento (etapa 1: escolha / etapa 2: formulário) -->
-    <!-- ========================================================== -->
     <div class="fundo-modal" id="fundo-modal">
         <div class="modal-lancamento">
             <div class="cabecalho-modal">
-                <h3>Novo lançamento</h3>
+                <h3 id="titulo-modal">Novo lançamento</h3>
                 <button class="botao-fechar-modal" id="botao-fechar-modal" aria-label="Fechar">✕</button>
             </div>
 
-            <!-- ETAPA 1: pergunta personalizada + escolha de Gasto ou Ganho -->
             <div class="etapa-escolha" id="etapa-escolha">
                 <p class="pergunta-escolha" id="pergunta-escolha">Deseja registrar um:</p>
                 <div class="botoes-escolha">
@@ -133,7 +121,6 @@
                 </div>
             </div>
 
-            <!-- ETAPA 2: formulário em si, some no início -->
             <form id="formulario-lancamento" hidden>
                 <button type="button" class="botao-trocar-tipo" id="botao-trocar-tipo"></button>
 
@@ -145,7 +132,6 @@
                     </div>
                 </div>
 
-                <!-- Só aparece quando "Parcelar compra" está marcado -->
                 <div class="campo" id="campo-parcelas-wrapper" hidden>
                     <label for="campo-parcelas">Número de parcelas</label>
                     <input type="number" id="campo-parcelas" min="2" max="48" step="1" placeholder="Ex: 5">
@@ -156,7 +142,6 @@
                     <select id="campo-categoria" required></select>
                 </div>
 
-                <!-- Só aparece quando a pessoa escolhe "+ Nova categoria" no select acima -->
                 <div class="campo" id="campo-nova-categoria-wrapper" hidden>
                     <label for="campo-nova-categoria">Nome da nova categoria</label>
                     <input type="text" id="campo-nova-categoria" placeholder="Ex: Pet, Academia...">
@@ -172,7 +157,6 @@
                     <input type="date" id="campo-data" required>
                 </div>
 
-                <!-- Só aparecem para Gasto -->
                 <div class="opcoes-especiais-gasto" id="opcoes-especiais-gasto">
                     <label class="item-checkbox">
                         <input type="checkbox" id="campo-fixo">

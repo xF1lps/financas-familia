@@ -6,17 +6,19 @@
 // dos arquivos principais.
 // ==========================================================================
 
-const NOME_DO_CACHE = "financas-familia-v2";
+const NOME_DO_CACHE = "financas-familia-v3";
 
 // Arquivos essenciais, guardados localmente no primeiro acesso
 const ARQUIVOS_ESSENCIAIS = [
     "index.html",
     "onboarding.html",
     "dashboard.html",
+    "extrato.html",
     "variaveis.css",
     "style.css",
     "onboarding.css",
     "dashboard.css",
+    "extrato.css",
     "manifest.json",
     "icone-192.png",
     "icone-512.png"

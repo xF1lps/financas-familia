@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Extrato Completo — Finanças</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="variaveis.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="extrato.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0A0A0A">
+</head>
+<body>
+
+    <div class="tela-carregamento" id="tela-carregamento">
+        <div class="conteudo-carregamento">
+            <span class="selo-marca-carregamento">Finanças</span>
+            <svg class="grafico-carregamento" viewBox="0 0 220 90" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path id="linha-carregamento" d="M8 70 C 40 74, 60 50, 85 54 S 130 28, 150 32 S 195 10, 212 14"
+                      stroke="#D97757" stroke-width="3" stroke-linecap="round" fill="none"/>
+                <circle class="ponto-carregamento" cx="212" cy="14" r="4" fill="#FFFFFF"/>
+            </svg>
+        </div>
+    </div>
+
+    <div class="app-shell">
+        <header class="topo-app">
+            <a href="dashboard.html" class="link-voltar" aria-label="Voltar">←</a>
+            <div class="marca-topo">Extrato Completo</div>
+            <span style="width:40px"></span>
+        </header>
+
+        <main class="conteudo-principal">
+            <ul class="lista-lancamentos" id="lista-extrato"></ul>
+            <p class="lista-vazia" id="extrato-vazio" hidden>Nenhum lançamento registrado ainda.</p>
+        </main>
+    </div>
+
+    <script type="module" src="extrato.js"></script>
+</body>
+</html>

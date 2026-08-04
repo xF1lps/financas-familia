@@ -24,6 +24,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const botaoOlhoConfirmar = document.getElementById("botao-olho-confirmar");
     const telaCarregamento = document.getElementById("tela-carregamento");
 
+    // A splash precisa ficar visível por pelo menos esse tempo, mesmo que o
+    // Firebase responda mais rápido — evita a sensação de "piscada"
+    const TEMPO_MINIMO_SPLASH = 1400;
+    const inicioCarregamento = Date.now();
+
+    function esconderSplashComAtraso() {
+        const decorrido = Date.now() - inicioCarregamento;
+        const restante = Math.max(0, TEMPO_MINIMO_SPLASH - decorrido);
+        setTimeout(() => telaCarregamento.classList.add("oculto"), restante);
+    }
+
     let modoAtual = "entrar";
 
     function mudarPara(modo) {
@@ -166,7 +177,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (usuario) {
             rotearAposLogin(usuario.uid);
         } else {
-            telaCarregamento.classList.add("oculto");
+            esconderSplashComAtraso();
         }
     });
 

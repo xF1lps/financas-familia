@@ -1,15 +1,10 @@
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-    collection, addDoc, deleteDoc, doc, getDoc, getDocs,
+    collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs,
     query, where, orderBy, onSnapshot, Timestamp, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ==========================================================================
-// CATEGORIAS PADRÃO
-// Só sobrou "Outros" — todo o resto vem da opção "+ Nova categoria", que a
-// pessoa cria na hora e fica salva pras próximas vezes.
-// ==========================================================================
 const CATEGORIAS_PADRAO = {
     gasto: ["Outros"],
     ganho: ["Outros"]
@@ -20,11 +15,18 @@ const NOMES_MESES = [
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
 
+// Mostramos só os últimos N lançamentos na tela inicial — o resto fica no Extrato Completo
+const LIMITE_ITENS_LISTA_INICIAL = 8;
+
+// Navegação do calendário travada até dezembro do ano corrente
+const LIMITE_NAVEGACAO = new Date(new Date().getFullYear(), 11, 1);
+
 document.addEventListener("DOMContentLoaded", function () {
 
     // ==========================================================================
     // 1. REFERÊNCIAS AOS ELEMENTOS DA TELA
     // ==========================================================================
+    const telaCarregamento = document.getElementById("tela-carregamento");
     const emailUsuario = document.getElementById("email-usuario");
     const botaoSair = document.getElementById("botao-sair");
 
@@ -53,6 +55,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const botaoAbrirModal = document.getElementById("botao-abrir-modal");
     const botaoFecharModal = document.getElementById("botao-fechar-modal");
     const fundoModal = document.getElementById("fundo-modal");
+    const tituloModal = document.getElementById("titulo-modal");
 
     const etapaEscolha = document.getElementById("etapa-escolha");
     const perguntaEscolha = document.getElementById("pergunta-escolha");
@@ -85,8 +88,10 @@ document.addEventListener("DOMContentLoaded", function () {
     let tipoSelecionado = "gasto";
     let categoriasCustomizadas = { gasto: [], ganho: [] };
     let pararDeEscutar = null;
+    let pararDeEscutarHoje = null;
     let rendaEhDiaria = false;
     let primeiroNome = "";
+    let idEmEdicao = null; // null = criando novo | string = editando esse lançamento
 
     // ==========================================================================
     // 3. VERIFICAR LOGIN
@@ -113,6 +118,12 @@ document.addEventListener("DOMContentLoaded", function () {
         await carregarCategoriasCustomizadas();
         atualizarRotuloMes();
         escutarLancamentosDoMes();
+
+        // O banner do Diarista roda numa consulta separada, sempre olhando
+        // pra "hoje" de verdade — independente de qual mês está na tela
+        if (rendaEhDiaria) escutarGanhoDeHoje();
+
+        telaCarregamento.classList.add("oculto");
     });
 
     botaoSair.addEventListener("click", async () => {
@@ -121,7 +132,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ==========================================================================
-    // 4. MENU LATERAL (hambúrguer)
+    // 4. MENU LATERAL
     // ==========================================================================
     function abrirMenuLateral() {
         painelMenu.classList.add("aberto");
@@ -138,7 +149,7 @@ document.addEventListener("DOMContentLoaded", function () {
     overlayMenu.addEventListener("click", fecharMenuLateral);
 
     // ==========================================================================
-    // 5. NAVEGAÇÃO ENTRE MESES E ANOS
+    // 5. NAVEGAÇÃO ENTRE MESES E ANOS (com limite até dezembro do ano corrente)
     // ==========================================================================
     mesAnteriorBtn.addEventListener("click", () => mudarPeriodo(-1));
     mesProximoBtn.addEventListener("click", () => mudarPeriodo(1));
@@ -146,13 +157,27 @@ document.addEventListener("DOMContentLoaded", function () {
     anoProximoBtn.addEventListener("click", () => mudarPeriodo(12));
 
     function mudarPeriodo(mesesParaSomar) {
-        mesSelecionado = new Date(mesSelecionado.getFullYear(), mesSelecionado.getMonth() + mesesParaSomar, 1);
+        const novaData = new Date(mesSelecionado.getFullYear(), mesSelecionado.getMonth() + mesesParaSomar, 1);
+
+        // Não deixa passar de dezembro do ano corrente
+        if (novaData > LIMITE_NAVEGACAO) {
+            mesSelecionado = new Date(LIMITE_NAVEGACAO);
+        } else {
+            mesSelecionado = novaData;
+        }
+
         atualizarRotuloMes();
         escutarLancamentosDoMes();
     }
 
     function atualizarRotuloMes() {
         rotuloMes.textContent = `${NOMES_MESES[mesSelecionado.getMonth()]} ${mesSelecionado.getFullYear()}`;
+
+        const jaNoLimite = mesSelecionado.getFullYear() === LIMITE_NAVEGACAO.getFullYear()
+            && mesSelecionado.getMonth() === LIMITE_NAVEGACAO.getMonth();
+
+        mesProximoBtn.disabled = jaNoLimite;
+        anoProximoBtn.disabled = jaNoLimite;
     }
 
     // ==========================================================================
@@ -171,8 +196,15 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function popularSelectCategorias() {
+    function popularSelectCategorias(categoriaAtual) {
         const listaCompleta = [...CATEGORIAS_PADRAO[tipoSelecionado], ...categoriasCustomizadas[tipoSelecionado]];
+
+        // Se a categoria do item sendo editado não estiver na lista (ex: foi
+        // uma categoria já excluída depois), adiciona ela também, senão o
+        // select perde o valor
+        if (categoriaAtual && !listaCompleta.includes(categoriaAtual)) {
+            listaCompleta.push(categoriaAtual);
+        }
 
         campoCategoria.innerHTML = "";
         listaCompleta.forEach((nomeCategoria) => {
@@ -186,6 +218,8 @@ document.addEventListener("DOMContentLoaded", function () {
         opcaoNova.value = "__nova__";
         opcaoNova.textContent = "+ Nova categoria";
         campoCategoria.appendChild(opcaoNova);
+
+        if (categoriaAtual) campoCategoria.value = categoriaAtual;
     }
 
     campoCategoria.addEventListener("change", () => {
@@ -195,11 +229,13 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ==========================================================================
-    // 7. MODAL — ETAPA 1 (escolha) E ETAPA 2 (formulário)
+    // 7. MODAL — ABRIR PARA CRIAR
     // ==========================================================================
-    function abrirModal() {
-        // Sempre volta pra etapa 1 quando abre, mesmo que tenha ficado no meio
-        // do preenchimento da última vez
+    function abrirModalNovo() {
+        idEmEdicao = null;
+        tituloModal.textContent = "Novo lançamento";
+        textoBotaoSalvar.textContent = "Salvar lançamento";
+
         etapaEscolha.hidden = false;
         formulario.hidden = true;
         formulario.reset();
@@ -207,7 +243,9 @@ document.addEventListener("DOMContentLoaded", function () {
         campoNovaCategoriaWrapper.hidden = true;
         campoParcelasWrapper.hidden = true;
         campoFixo.checked = false;
+        campoFixo.disabled = false;
         campoParcelado.checked = false;
+        campoParcelado.disabled = false;
 
         perguntaEscolha.textContent = primeiroNome
             ? `${primeiroNome}, deseja registrar um:`
@@ -216,8 +254,35 @@ document.addEventListener("DOMContentLoaded", function () {
         fundoModal.classList.add("aberto");
     }
 
+    // ==========================================================================
+    // MODAL — ABRIR PARA EDITAR (a partir de um clique num item da lista)
+    // ==========================================================================
+    function abrirModalEdicao(idLancamento, dados) {
+        idEmEdicao = idLancamento;
+        tituloModal.textContent = "Editar lançamento";
+        textoBotaoSalvar.textContent = "Salvar alterações";
+
+        tipoSelecionado = dados.tipo;
+        etapaEscolha.hidden = true;
+        formulario.hidden = false;
+        esconderAviso();
+
+        botaoTrocarTipo.hidden = true; // não dá pra trocar o tipo de um lançamento já existente
+        rotuloValor.textContent = "Valor";
+        opcoesEspeciaisGasto.hidden = true; // editar não deve gerar novas parcelas/repetições
+
+        popularSelectCategorias(dados.categoria);
+        campoValor.value = dados.valor;
+        campoDescricao.value = dados.descricao || "";
+        campoData.value = dados.data.toDate().toISOString().split("T")[0];
+        campoNovaCategoriaWrapper.hidden = true;
+
+        fundoModal.classList.add("aberto");
+    }
+
     function fecharModal() {
         fundoModal.classList.remove("aberto");
+        botaoTrocarTipo.hidden = false;
     }
 
     function irParaFormulario(tipo) {
@@ -245,14 +310,13 @@ document.addEventListener("DOMContentLoaded", function () {
         formulario.hidden = true;
     });
 
-    botaoAbrirModal.addEventListener("click", abrirModal);
+    botaoAbrirModal.addEventListener("click", abrirModalNovo);
     botaoFecharModal.addEventListener("click", fecharModal);
 
     fundoModal.addEventListener("click", (evento) => {
         if (evento.target === fundoModal) fecharModal();
     });
 
-    // Gasto fixo e parcelamento são mutuamente exclusivos — marcar um desmarca o outro
     campoFixo.addEventListener("change", () => {
         if (campoFixo.checked) campoParcelado.checked = false;
         atualizarVisibilidadeParcelas();
@@ -288,8 +352,19 @@ document.addEventListener("DOMContentLoaded", function () {
         textoBotaoSalvar.style.opacity = carregando ? "0.7" : "1";
     }
 
+    // Junta a data escolhida no calendário com o horário real de agora —
+    // resolve dois pontos ao mesmo tempo: mostra a que horas a pessoa
+    // realmente registrou aquilo, e faz lançamentos do mesmo dia ficarem
+    // ordenados certinho (do mais recente pro mais antigo)
+    function construirDataComHorarioReal(dataDoCampo) {
+        const agora = new Date();
+        const horas = String(agora.getHours()).padStart(2, "0");
+        const minutos = String(agora.getMinutes()).padStart(2, "0");
+        return new Date(`${dataDoCampo}T${horas}:${minutos}:00`);
+    }
+
     // ==========================================================================
-    // 9. SALVAR LANÇAMENTO (normal, fixo ou parcelado)
+    // 9. SALVAR (criar novo, ou editar um existente)
     // ==========================================================================
     formulario.addEventListener("submit", async (evento) => {
         evento.preventDefault();
@@ -311,6 +386,38 @@ document.addEventListener("DOMContentLoaded", function () {
             categoriaFinal = nomeNovaCategoria;
         }
 
+        // ---- Fluxo de EDIÇÃO ----
+        if (idEmEdicao) {
+            const confirmou = window.confirm("Tem certeza de que deseja salvar as alterações deste lançamento?");
+            if (!confirmou) return;
+
+            definirCarregando(true);
+            try {
+                if (campoCategoria.value === "__nova__") {
+                    await addDoc(collection(db, "usuarios", uidAtual, "categorias"), {
+                        nome: categoriaFinal,
+                        tipo: tipoSelecionado
+                    });
+                    categoriasCustomizadas[tipoSelecionado].push(categoriaFinal);
+                }
+
+                await updateDoc(doc(db, "usuarios", uidAtual, "lancamentos", idEmEdicao), {
+                    valor: valorDigitado,
+                    categoria: categoriaFinal,
+                    descricao: campoDescricao.value.trim(),
+                    data: Timestamp.fromDate(construirDataComHorarioReal(campoData.value))
+                });
+
+                fecharModal();
+            } catch (erro) {
+                mostrarAviso("Não deu pra salvar agora. Confere sua internet e tenta de novo.");
+            } finally {
+                definirCarregando(false);
+            }
+            return;
+        }
+
+        // ---- Fluxo de CRIAÇÃO ----
         const ehParcelado = tipoSelecionado === "gasto" && campoParcelado.checked;
         const numeroParcelas = ehParcelado ? parseInt(campoParcelas.value, 10) : 1;
 
@@ -330,7 +437,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 categoriasCustomizadas[tipoSelecionado].push(categoriaFinal);
             }
 
-            const dataEscolhida = new Date(`${campoData.value}T12:00:00`);
+            const dataEscolhida = construirDataComHorarioReal(campoData.value);
             const descricaoBase = campoDescricao.value.trim();
 
             if (ehParcelado) {
@@ -357,16 +464,16 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // Divide o valor total em N parcelas iguais, lançando uma em cada mês
-    // seguinte. A última parcela absorve a diferença de centavos do
-    // arredondamento, pra soma bater certinho com o valor total.
     async function salvarParcelado(valorTotal, numeroParcelas, categoria, descricaoBase, dataInicial) {
         const valorParcela = Math.floor((valorTotal / numeroParcelas) * 100) / 100;
         const diferencaCentavos = Math.round((valorTotal - valorParcela * numeroParcelas) * 100) / 100;
         const grupoId = `parc_${Date.now()}`;
 
         for (let indice = 0; indice < numeroParcelas; indice++) {
-            const dataDaParcela = new Date(dataInicial.getFullYear(), dataInicial.getMonth() + indice, dataInicial.getDate(), 12);
+            const dataDaParcela = new Date(
+                dataInicial.getFullYear(), dataInicial.getMonth() + indice, dataInicial.getDate(),
+                dataInicial.getHours(), dataInicial.getMinutes()
+            );
             const ehUltima = indice === numeroParcelas - 1;
             const valorDessaParcela = ehUltima ? valorParcela + diferencaCentavos : valorParcela;
             const descricaoFinal = `${descricaoBase || categoria} (Parcela ${indice + 1}/${numeroParcelas})`;
@@ -383,9 +490,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Repete o mesmo gasto pelos próximos 12 meses (contando o mês atual).
-    // Ajusta o dia automaticamente se o mês de destino for mais curto
-    // (ex: lançado dia 31, em fevereiro cai no último dia do mês).
     async function salvarFixo(valor, categoria, descricaoBase, dataInicial) {
         const grupoId = `fixo_${Date.now()}`;
         const diaOriginal = dataInicial.getDate();
@@ -395,7 +499,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const mesDestino = dataInicial.getMonth() + indice;
             const ultimoDiaDoMes = new Date(anoDestino, mesDestino + 1, 0).getDate();
             const diaFinal = Math.min(diaOriginal, ultimoDiaDoMes);
-            const dataDoMes = new Date(anoDestino, mesDestino, diaFinal, 12);
+            const dataDoMes = new Date(anoDestino, mesDestino, diaFinal, dataInicial.getHours(), dataInicial.getMinutes());
 
             await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
                 tipo: "gasto",
@@ -430,34 +534,31 @@ document.addEventListener("DOMContentLoaded", function () {
         pararDeEscutar = onSnapshot(consulta, (snapshot) => {
             renderizarLista(snapshot.docs);
             calcularTotais(snapshot.docs);
-            atualizarBannerDiarista(snapshot.docs);
         });
     }
 
     // ==========================================================================
-    // BANNER DO DIARISTA
+    // BANNER DO DIARISTA — consulta própria, sempre olhando pra "hoje",
+    // independente de qual mês está sendo exibido na tela
     // ==========================================================================
-    function atualizarBannerDiarista(documentos) {
-        if (!rendaEhDiaria) {
-            bannerDiarista.hidden = true;
-            return;
-        }
+    function escutarGanhoDeHoje() {
+        if (pararDeEscutarHoje) pararDeEscutarHoje();
 
         const hoje = new Date();
-        const ehMesAtual = mesSelecionado.getFullYear() === hoje.getFullYear()
-            && mesSelecionado.getMonth() === hoje.getMonth();
+        const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+        const inicioAmanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
 
-        if (!ehMesAtual) {
-            bannerDiarista.hidden = true;
-            return;
-        }
+        const referencia = collection(db, "usuarios", uidAtual, "lancamentos");
+        const consulta = query(
+            referencia,
+            where("data", ">=", Timestamp.fromDate(inicioHoje)),
+            where("data", "<", Timestamp.fromDate(inicioAmanha)),
+            where("tipo", "==", "ganho")
+        );
 
-        const jaTemGanhoHoje = documentos.some((documento) => {
-            const dados = documento.data();
-            return dados.tipo === "ganho" && dados.data.toDate().toDateString() === hoje.toDateString();
+        pararDeEscutarHoje = onSnapshot(consulta, (snapshot) => {
+            bannerDiarista.hidden = !snapshot.empty;
         });
-
-        bannerDiarista.hidden = jaTemGanhoHoje;
     }
 
     botaoRegistrarDiario.addEventListener("click", async () => {
@@ -480,24 +581,29 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ==========================================================================
-    // 11. DESENHAR A LISTA DE LANÇAMENTOS NA TELA
+    // 11. DESENHAR A LISTA (só os últimos N, o resto fica no Extrato Completo)
     // ==========================================================================
     function renderizarLista(documentos) {
         listaLancamentos.innerHTML = "";
         listaVazia.hidden = documentos.length > 0;
 
-        documentos.forEach((documento) => {
+        const documentosVisiveis = documentos.slice(0, LIMITE_ITENS_LISTA_INICIAL);
+
+        documentosVisiveis.forEach((documento) => {
             const dados = documento.data();
-            const dataFormatada = dados.data.toDate().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+            const dataObj = dados.data.toDate();
+            const dataFormatada = dataObj.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+            const horaFormatada = dataObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false });
             const sinal = dados.tipo === "ganho" ? "+" : "-";
 
             const item = document.createElement("li");
             item.className = `item-lancamento tipo-${dados.tipo}`;
+            item.dataset.id = documento.id;
             item.innerHTML = `
                 <span class="ponto-categoria"></span>
                 <div class="info-lancamento">
                     <div class="descricao-lancamento">${dados.descricao || dados.categoria}</div>
-                    <div class="meta-lancamento">${dados.categoria} · ${dataFormatada}</div>
+                    <div class="meta-lancamento">${dados.categoria} · ${dataFormatada} às ${horaFormatada}</div>
                 </div>
                 <span class="valor-lancamento">${sinal} ${formatarMoeda(dados.valor)}</span>
                 <button class="botao-excluir" data-id="${documento.id}" aria-label="Excluir lançamento">
@@ -506,16 +612,24 @@ document.addEventListener("DOMContentLoaded", function () {
                     </svg>
                 </button>
             `;
+            item.dataset.dados = JSON.stringify({ tipo: dados.tipo, valor: dados.valor, categoria: dados.categoria, descricao: dados.descricao || "" });
+            item._dadosOriginais = dados;
             listaLancamentos.appendChild(item);
         });
     }
 
+    // Clique no lançamento (fora do botão de excluir) abre edição
     listaLancamentos.addEventListener("click", async (evento) => {
-        const botao = evento.target.closest(".botao-excluir");
-        if (!botao) return;
+        const botaoExcluir = evento.target.closest(".botao-excluir");
+        if (botaoExcluir) {
+            await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", botaoExcluir.dataset.id));
+            return;
+        }
 
-        const idLancamento = botao.dataset.id;
-        await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", idLancamento));
+        const item = evento.target.closest(".item-lancamento");
+        if (item && item._dadosOriginais) {
+            abrirModalEdicao(item.dataset.id, item._dadosOriginais);
+        }
     });
 
     // ==========================================================================

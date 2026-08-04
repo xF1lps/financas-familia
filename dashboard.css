@@ -3,7 +3,10 @@
    sem precisar redeclarar nada disso aqui. */
 
 body {
-    background-color: var(--bg-deep);
+    background: radial-gradient(circle at 12% 8%, rgba(217, 119, 87, 0.09), transparent 42%),
+                radial-gradient(circle at 88% 92%, rgba(217, 119, 87, 0.07), transparent 40%),
+                var(--bg-deep);
+    min-height: 100vh;
 }
 
 .app-shell {
@@ -213,6 +216,13 @@ body {
     color: var(--accent);
 }
 
+.seta-mes:disabled,
+.seta-ano:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 /* ==========================================================================
    SALDO EM DESTAQUE
    ========================================================================== */
@@ -344,6 +354,15 @@ body {
     margin-top: 2px;
 }
 
+/* Item da lista fica clicável (abre edição) — só a área do X escapa disso */
+.item-lancamento {
+    cursor: pointer;
+}
+
+.item-lancamento:hover {
+    background-color: var(--surface-alta);
+}
+
 .valor-lancamento {
     font-family: var(--fonte-titulo);
     font-weight: 600;
@@ -378,6 +397,23 @@ body {
     color: var(--text-muted);
     font-size: 14px;
     padding: 32px 16px;
+}
+
+.botao-ver-extrato {
+    display: block;
+    text-align: center;
+    margin-top: 14px;
+    padding: 12px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.botao-ver-extrato:hover {
+    background-color: var(--surface);
 }
 
 /* ==========================================================================
@@ -566,6 +602,12 @@ body {
     flex-direction: column;
     gap: 10px;
     margin-bottom: 18px;
+}
+
+/* Sem essa regra, o "display: flex" acima vence o atributo hidden, e as
+   opções de Gasto Fixo/Parcelado continuam aparecendo mesmo no fluxo de Ganho */
+.opcoes-especiais-gasto[hidden] {
+    display: none;
 }
 
 .opcoes-especiais-gasto .item-checkbox {
