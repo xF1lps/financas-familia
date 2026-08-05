@@ -420,6 +420,98 @@ body {
 }
 
 /* ==========================================================================
+   GRÁFICO DE GASTOS POR CATEGORIA (rosca)
+   ========================================================================== */
+.secao-grafico {
+    margin-bottom: 32px;
+}
+
+.cartao-grafico {
+    background-color: var(--surface);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.cartao-grafico[hidden] {
+    display: none;
+}
+
+.grafico-donut {
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
+    transform: rotate(-90deg);
+}
+
+.grafico-donut circle {
+    transition: stroke-dasharray 0.5s ease;
+}
+
+.legenda-grafico {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.item-legenda {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.ponto-legenda {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.nome-legenda {
+    flex: 1;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.percentual-legenda {
+    color: var(--text-muted);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.grafico-vazio {
+    background-color: var(--surface);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13.5px;
+}
+
+@media (max-width: 480px) {
+    .cartao-grafico {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .grafico-donut {
+        align-self: center;
+    }
+}
+
+/* ==========================================================================
    BOTÃO FLUTUANTE (ADICIONAR LANÇAMENTO)
    ========================================================================== */
 .botao-adicionar {

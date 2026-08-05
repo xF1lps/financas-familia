@@ -6,7 +6,7 @@
 // dos arquivos principais.
 // ==========================================================================
 
-const NOME_DO_CACHE = "financas-familia-v3";
+const NOME_DO_CACHE = "financas-familia-v4";
 
 // Arquivos essenciais, guardados localmente no primeiro acesso
 const ARQUIVOS_ESSENCIAIS = [
@@ -14,6 +14,7 @@ const ARQUIVOS_ESSENCIAIS = [
     "onboarding.html",
     "dashboard.html",
     "extrato.html",
+    "guardado.html",
     "variaveis.css",
     "style.css",
     "onboarding.css",
@@ -21,7 +22,9 @@ const ARQUIVOS_ESSENCIAIS = [
     "extrato.css",
     "manifest.json",
     "icone-192.png",
-    "icone-512.png"
+    "icone-512.png",
+    "favicon-32.png",
+    "favicon-16.png"
 ];
 
 // Quando o service worker é instalado pela primeira vez, guarda os arquivos essenciais

@@ -7,8 +7,11 @@ import {
 
 const CATEGORIAS_PADRAO = {
     gasto: ["Outros"],
-    ganho: ["Outros"]
+    ganho: ["Outros", "Guardar Dinheiro"]
 };
+
+// Cores usadas no gráfico de gastos por categoria (cicla se tiver mais categorias que cores)
+const PALETA_GRAFICO = ["#D97757", "#34D399", "#60A5FA", "#F5D76E", "#C084FC", "#F87171", "#5EEAD4", "#FDBA74"];
 
 const NOMES_MESES = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -16,7 +19,7 @@ const NOMES_MESES = [
 ];
 
 // Mostramos só os últimos N lançamentos na tela inicial — o resto fica no Extrato Completo
-const LIMITE_ITENS_LISTA_INICIAL = 8;
+const LIMITE_ITENS_LISTA_INICIAL = 4;
 
 // Navegação do calendário travada até dezembro do ano corrente
 const LIMITE_NAVEGACAO = new Date(new Date().getFullYear(), 11, 1);
@@ -49,9 +52,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const listaVazia = document.getElementById("lista-vazia");
     const linkExtrato = document.getElementById("link-extrato");
 
-    const bannerDiarista = document.getElementById("banner-diarista");
-    const valorDiarioInput = document.getElementById("valor-diario");
-    const botaoRegistrarDiario = document.getElementById("registrar-diario");
+    const bannerSalario = document.getElementById("banner-salario");
+    const valorSalarioBanner = document.getElementById("valor-salario-banner");
+    const botaoConfirmarSalario = document.getElementById("confirmar-salario");
+    const perguntaSalario = document.getElementById("pergunta-salario");
+
+    const graficoDonut = document.getElementById("grafico-donut");
+    const legendaGrafico = document.getElementById("legenda-grafico");
+    const graficoVazio = document.getElementById("grafico-vazio");
 
     const botaoAbrirModal = document.getElementById("botao-abrir-modal");
     const botaoFecharModal = document.getElementById("botao-fechar-modal");
@@ -89,8 +97,8 @@ document.addEventListener("DOMContentLoaded", function () {
     let tipoSelecionado = "gasto";
     let categoriasCustomizadas = { gasto: [], ganho: [] };
     let pararDeEscutar = null;
-    let pararDeEscutarHoje = null;
-    let rendaEhDiaria = false;
+    let pararDeEscutarSalario = null;
+    let salarioPadrao = 0;
     let primeiroNome = "";
     let idEmEdicao = null; // null = criando novo | string = editando esse lançamento
 
@@ -113,16 +121,16 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const perfil = perfilSnapshot.data();
-        rendaEhDiaria = perfil.renda === "diaria";
         primeiroNome = (perfil.nome || "").trim().split(" ")[0] || "";
+        salarioPadrao = perfil.salarioPadrao || 0;
 
         await carregarCategoriasCustomizadas();
         atualizarRotuloMes();
         escutarLancamentosDoMes();
 
-        // O banner do Diarista roda numa consulta separada, sempre olhando
-        // pra "hoje" de verdade — independente de qual mês está na tela
-        if (rendaEhDiaria) escutarGanhoDeHoje();
+        // O banner de salário roda numa consulta separada, olhando pro mês
+        // atual de verdade — independente de qual mês está sendo navegado
+        if (salarioPadrao > 0) escutarSalarioDoMes();
 
         telaCarregamento.classList.add("oculto");
     });
@@ -541,50 +549,55 @@ document.addEventListener("DOMContentLoaded", function () {
         pararDeEscutar = onSnapshot(consulta, (snapshot) => {
             renderizarLista(snapshot.docs);
             calcularTotais(snapshot.docs);
+            renderizarGrafico(snapshot.docs);
         });
     }
 
     // ==========================================================================
-    // BANNER DO DIARISTA — consulta própria, sempre olhando pra "hoje",
-    // independente de qual mês está sendo exibido na tela
+    // BANNER DE SALÁRIO — consulta própria, olhando pro mês corrente de
+    // verdade, independente de qual mês está sendo exibido na tela
     // ==========================================================================
-    function escutarGanhoDeHoje() {
-        if (pararDeEscutarHoje) pararDeEscutarHoje();
+    function escutarSalarioDoMes() {
+        if (pararDeEscutarSalario) pararDeEscutarSalario();
 
         const hoje = new Date();
-        const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-        const inicioAmanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+        const inicioMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        const inicioProximoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
 
         const referencia = collection(db, "usuarios", uidAtual, "lancamentos");
         const consulta = query(
             referencia,
-            where("data", ">=", Timestamp.fromDate(inicioHoje)),
-            where("data", "<", Timestamp.fromDate(inicioAmanha)),
-            where("tipo", "==", "ganho")
+            where("data", ">=", Timestamp.fromDate(inicioMesAtual)),
+            where("data", "<", Timestamp.fromDate(inicioProximoMes)),
+            where("categoria", "==", "Salário")
         );
 
-        pararDeEscutarHoje = onSnapshot(consulta, (snapshot) => {
-            bannerDiarista.hidden = !snapshot.empty;
+        pararDeEscutarSalario = onSnapshot(consulta, (snapshot) => {
+            bannerSalario.hidden = !snapshot.empty;
         });
+
+        perguntaSalario.textContent = primeiroNome
+            ? `Olá, ${primeiroNome}! Já recebeu seu salário deste mês?`
+            : "Já recebeu seu salário deste mês?";
+        valorSalarioBanner.value = salarioPadrao;
     }
 
-    botaoRegistrarDiario.addEventListener("click", async () => {
-        const valor = parseFloat(valorDiarioInput.value);
+    botaoConfirmarSalario.addEventListener("click", async () => {
+        const valor = parseFloat(valorSalarioBanner.value);
         if (!valor || valor <= 0) return;
 
-        botaoRegistrarDiario.disabled = true;
+        botaoConfirmarSalario.disabled = true;
 
         await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
             tipo: "ganho",
             valor: valor,
-            categoria: "Diária",
+            categoria: "Salário",
             descricao: "",
             data: Timestamp.fromDate(new Date()),
             criadoEm: serverTimestamp()
         });
 
-        valorDiarioInput.value = "";
-        botaoRegistrarDiario.disabled = false;
+        botaoConfirmarSalario.disabled = false;
     });
 
     // ==========================================================================
@@ -648,6 +661,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
         documentos.forEach((documento) => {
             const dados = documento.data();
+
+            // "Guardar Dinheiro" aparece na lista pro histórico, mas não conta
+            // no saldo principal — só é visível de verdade na tela "Saldo Guardado"
+            if (dados.categoria === "Guardar Dinheiro") return;
+
             if (dados.tipo === "ganho") {
                 totalGanhos += dados.valor;
             } else {
@@ -661,10 +679,75 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ==========================================================================
-    // 13. FORMATAR MOEDA
+    // FORMATAR MOEDA
     // ==========================================================================
     function formatarMoeda(valor) {
         return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
+    // ==========================================================================
+    // GRÁFICO DE ROSCA — gastos por categoria do mês selecionado
+    // Desenhado em SVG puro (sem biblioteca externa), pra não depender de
+    // internet extra nem pesar o app.
+    // ==========================================================================
+    function renderizarGrafico(documentos) {
+        const totaisPorCategoria = {};
+
+        documentos.forEach((documento) => {
+            const dados = documento.data();
+            if (dados.tipo !== "gasto") return;
+            totaisPorCategoria[dados.categoria] = (totaisPorCategoria[dados.categoria] || 0) + dados.valor;
+        });
+
+        const categorias = Object.keys(totaisPorCategoria)
+            .map((nome) => ({ nome, valor: totaisPorCategoria[nome] }))
+            .sort((a, b) => b.valor - a.valor);
+
+        const totalGeral = categorias.reduce((soma, item) => soma + item.valor, 0);
+
+        graficoDonut.innerHTML = "";
+        legendaGrafico.innerHTML = "";
+
+        if (totalGeral === 0) {
+            graficoVazio.hidden = false;
+            graficoDonut.closest(".cartao-grafico").hidden = true;
+            return;
+        }
+
+        graficoVazio.hidden = true;
+        graficoDonut.closest(".cartao-grafico").hidden = false;
+
+        const raio = 50;
+        const circunferencia = 2 * Math.PI * raio;
+        let deslocamentoAcumulado = 0;
+
+        categorias.forEach((item, indice) => {
+            const percentual = item.valor / totalGeral;
+            const cor = PALETA_GRAFICO[indice % PALETA_GRAFICO.length];
+            const comprimentoFatia = percentual * circunferencia;
+
+            const circulo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circulo.setAttribute("cx", "60");
+            circulo.setAttribute("cy", "60");
+            circulo.setAttribute("r", String(raio));
+            circulo.setAttribute("fill", "none");
+            circulo.setAttribute("stroke", cor);
+            circulo.setAttribute("stroke-width", "16");
+            circulo.setAttribute("stroke-dasharray", `${comprimentoFatia} ${circunferencia - comprimentoFatia}`);
+            circulo.setAttribute("stroke-dashoffset", String(-deslocamentoAcumulado));
+            graficoDonut.appendChild(circulo);
+
+            deslocamentoAcumulado += comprimentoFatia;
+
+            const itemLegenda = document.createElement("li");
+            itemLegenda.className = "item-legenda";
+            itemLegenda.innerHTML = `
+                <span class="ponto-legenda" style="background-color: ${cor}"></span>
+                <span class="nome-legenda">${item.nome}</span>
+                <span class="percentual-legenda">${Math.round(percentual * 100)}%</span>
+            `;
+            legendaGrafico.appendChild(itemLegenda);
+        });
     }
 
 });

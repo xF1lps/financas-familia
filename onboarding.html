@@ -13,6 +13,8 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0A0A0A">
     <link rel="apple-touch-icon" href="icone-192.png">
+    <link rel="icon" href="favicon-32.png" sizes="32x32">
+    <link rel="icon" href="favicon-16.png" sizes="16x16">
 </head>
 <body>
 
@@ -42,8 +44,16 @@
                 </div>
 
                 <div class="campo">
-                    <label for="campo-idade">Idade</label>
-                    <input type="number" id="campo-idade" min="1" max="120" placeholder="Ex: 28" required>
+                    <label for="campo-nascimento">Data de nascimento</label>
+                    <input type="date" id="campo-nascimento" required>
+                </div>
+
+                <div class="campo">
+                    <label for="campo-salario">Salário padrão <span class="dica-campo">(pode ser 0 se não tiver um valor fixo)</span></label>
+                    <div class="valor-wrapper">
+                        <span class="prefixo-valor">R$</span>
+                        <input type="number" id="campo-salario" step="0.01" min="0" placeholder="0,00" required>
+                    </div>
                 </div>
 
                 <div class="campo">

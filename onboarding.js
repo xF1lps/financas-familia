@@ -6,7 +6,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const formulario = document.getElementById("formulario-onboarding");
     const campoNome = document.getElementById("campo-nome");
-    const campoIdade = document.getElementById("campo-idade");
+    const campoNascimento = document.getElementById("campo-nascimento");
+    const campoSalario = document.getElementById("campo-salario");
     const listaProfissoes = document.getElementById("lista-profissoes");
     const mensagemAviso = document.getElementById("mensagem-aviso");
     const botaoEnviar = document.getElementById("botao-enviar");
@@ -47,14 +48,15 @@ document.addEventListener("DOMContentLoaded", function () {
         mensagemAviso.classList.remove("visivel");
 
         const nome = campoNome.value.trim();
-        const idade = parseInt(campoIdade.value, 10);
+        const dataNascimento = campoNascimento.value;
+        const salarioPadrao = parseFloat(campoSalario.value);
 
         // Pega todas as caixinhas marcadas e monta uma lista com os valores delas
         const checkboxesMarcados = listaProfissoes.querySelectorAll("input[type=checkbox]:checked");
         const profissoes = Array.from(checkboxesMarcados).map((checkbox) => checkbox.value);
 
-        if (!nome || !idade) {
-            mensagemAviso.textContent = "Preenche nome e idade pra continuar.";
+        if (!nome || !dataNascimento || isNaN(salarioPadrao)) {
+            mensagemAviso.textContent = "Preenche nome, data de nascimento e salário pra continuar.";
             mensagemAviso.classList.add("visivel");
             return;
         }
@@ -77,7 +79,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             await setDoc(doc(db, "usuarios", uidAtual), {
                 nome,
-                idade,
+                dataNascimento,
+                salarioPadrao,
                 profissoes,
                 renda,
                 onboardingCompleto: true,

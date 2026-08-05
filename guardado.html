@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Saldo Guardado — Finanças</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="variaveis.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="extrato.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0A0A0A">
+    <link rel="icon" href="favicon-32.png" sizes="32x32">
+    <link rel="icon" href="favicon-16.png" sizes="16x16">
+</head>
+<body>
+
+    <div class="app-shell">
+        <header class="topo-app">
+            <a href="dashboard.html" class="link-voltar" aria-label="Voltar">←</a>
+            <div class="marca-topo">Saldo Guardado</div>
+            <span style="width:40px"></span>
+        </header>
+
+        <main class="conteudo-principal">
+            <section class="cartao-saldo-principal">
+                <span class="rotulo-cartao">Total guardado</span>
+                <span class="valor-saldo-grande" id="total-guardado">R$ 0,00</span>
+            </section>
+
+            <p class="texto-explicativo-guardado">
+                Esse valor não entra no saldo da tela inicial — é dinheiro que você separou de propósito, guardado à parte.
+            </p>
+
+            <ul class="lista-lancamentos" id="lista-guardado"></ul>
+            <p class="lista-vazia" id="guardado-vazio" hidden>Você ainda não guardou nenhum valor.</p>
+        </main>
+    </div>
+
+    <script type="module" src="guardado.js"></script>
+</body>
+</html>

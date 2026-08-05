@@ -15,6 +15,8 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0A0A0A">
     <link rel="apple-touch-icon" href="icone-192.png">
+    <link rel="icon" href="favicon-32.png" sizes="32x32">
+    <link rel="icon" href="favicon-16.png" sizes="16x16">
 </head>
 <body>
 
@@ -49,23 +51,26 @@
                 <span class="email-usuario" id="email-usuario"></span>
             </div>
             <a href="extrato.html" class="botao-encerrar-sessao">Ver Extrato Completo</a>
+            <a href="guardado.html" class="botao-encerrar-sessao">Saldo Guardado</a>
             <button class="botao-encerrar-sessao" id="botao-sair">Encerrar Sessão</button>
             <div class="creditos-menu">Desenvolvido por <strong>Philipe Emanuel</strong></div>
         </aside>
 
         <main class="conteudo-principal">
 
-            <section class="banner-diarista" id="banner-diarista" hidden>
+            <!-- Banner do salário mensal — aparece se tiver salário padrão configurado
+                 e ainda não tiver sido confirmado nesse mês -->
+            <section class="banner-diarista" id="banner-salario" hidden>
                 <div class="texto-banner-diarista">
-                    <strong>Bora registrar o ganho de hoje?</strong>
-                    <span>Como sua renda é diária, é bom já deixar anotado.</span>
+                    <strong id="pergunta-salario">Já recebeu seu salário deste mês?</strong>
+                    <span>Confirma o valor pra já entrar no seu saldo.</span>
                 </div>
                 <div class="acao-banner-diarista">
                     <div class="valor-wrapper">
                         <span class="prefixo-valor">R$</span>
-                        <input type="number" id="valor-diario" step="0.01" min="0" placeholder="0,00">
+                        <input type="number" id="valor-salario-banner" step="0.01" min="0" placeholder="0,00">
                     </div>
-                    <button type="button" class="botao-enviar" id="registrar-diario">Registrar</button>
+                    <button type="button" class="botao-enviar" id="confirmar-salario">Sim, recebi</button>
                 </div>
             </section>
 
@@ -93,11 +98,23 @@
                 </div>
             </section>
 
+            <!-- ========================================================== -->
+            <!-- GRÁFICO DE GASTOS POR CATEGORIA -->
+            <!-- ========================================================== -->
+            <section class="secao-grafico">
+                <h3 class="titulo-secao">Para onde foi seu dinheiro</h3>
+                <div class="cartao-grafico">
+                    <svg id="grafico-donut" viewBox="0 0 120 120" class="grafico-donut"></svg>
+                    <ul class="legenda-grafico" id="legenda-grafico"></ul>
+                </div>
+                <p class="grafico-vazio" id="grafico-vazio" hidden>Nenhum gasto registrado neste mês ainda.</p>
+            </section>
+
             <section class="lista-lancamentos-secao">
                 <h3 class="titulo-secao">Lançamentos recentes</h3>
                 <ul class="lista-lancamentos" id="lista-lancamentos"></ul>
                 <p class="lista-vazia" id="lista-vazia" hidden>Nenhum lançamento neste mês ainda. Toca no + para adicionar o primeiro.</p>
-                <a href="extrato.html" class="botao-ver-extrato" id="link-extrato">Ver extrato completo →</a>
+                <a href="extrato.html" class="botao-ver-extrato" id="link-extrato">Ver extrato do mês →</a>
             </section>
 
         </main>
