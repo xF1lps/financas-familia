@@ -106,6 +106,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let salarioPadrao = 0;
     let primeiroNome = "";
     let idEmEdicao = null; // null = criando novo | string = editando esse lançamento
+    let saldoAtualDoMes = 0; // usado pra impedir guardar mais do que o saldo permite
     let modoGuardar = false; // true = a pessoa escolheu "Guardar" no modal
 
     // ==========================================================================
@@ -390,9 +391,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function irParaFormulario(tipoClicado) {
         // "guardar" não é um tipo de lançamento de verdade — por baixo dos
-        // panos ele é um "ganho" com categoria fixa "Guardar Dinheiro"
+        // panos ele é um "ganho" com categoria fixa "Guardar Dinheiro".
+        // "extra" também é só o nome do botão — internamente é "ganho" também.
         modoGuardar = tipoClicado === "guardar";
-        tipoSelecionado = modoGuardar ? "ganho" : tipoClicado;
+        tipoSelecionado = tipoClicado === "gasto" ? "gasto" : "ganho";
 
         etapaEscolha.hidden = true;
         formulario.hidden = false;
@@ -489,6 +491,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const valorDigitado = parseFloat(campoValor.value);
         if (!valorDigitado || valorDigitado <= 0) {
             mostrarAviso("Digita um valor maior que zero.");
+            return;
+        }
+
+        if (modoGuardar && valorDigitado > saldoAtualDoMes) {
+            mostrarAviso(`Esse valor é maior do que o seu saldo atual (${formatarMoeda(saldoAtualDoMes)}). Não dá pra guardar mais do que você tem.`);
             return;
         }
 
@@ -780,7 +787,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         totalGanhosEl.textContent = formatarMoeda(totalGanhos);
         totalGastosEl.textContent = formatarMoeda(totalGastos);
-        totalSaldoEl.textContent = formatarMoeda(totalGanhos - totalGastos);
+        saldoAtualDoMes = totalGanhos - totalGastos;
+        totalSaldoEl.textContent = formatarMoeda(saldoAtualDoMes);
     }
 
     // ==========================================================================
