@@ -114,6 +114,8 @@ document.addEventListener("DOMContentLoaded", function () {
     listaExtrato.addEventListener("click", async (evento) => {
         const botao = evento.target.closest(".botao-excluir");
         if (!botao) return;
+        const confirmou = window.confirm("Tem certeza de que deseja excluir este lançamento?");
+        if (!confirmou) return;
         await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", botao.dataset.id));
     });
 

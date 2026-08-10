@@ -500,6 +500,13 @@ body {
     font-size: 13.5px;
 }
 
+.texto-explicativo-guardado {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
 @media (max-width: 480px) {
     .cartao-grafico {
         flex-direction: column;
@@ -639,6 +646,11 @@ body {
     color: var(--sucesso);
 }
 
+.botao-escolha-tipo.escolha-guardar:hover {
+    border-color: #60A5FA;
+    color: #60A5FA;
+}
+
 /* Selo no topo do formulário (etapa 2) mostrando o tipo escolhido, com opção de trocar */
 .botao-trocar-tipo {
     display: inline-flex;
@@ -697,6 +709,40 @@ body {
     flex-direction: column;
     gap: 10px;
     margin-bottom: 18px;
+}
+
+.categoria-com-lixeira {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.categoria-com-lixeira select {
+    flex: 1;
+}
+
+.botao-excluir-categoria {
+    background: none;
+    border: 1px solid var(--borda);
+    color: var(--text-muted);
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.botao-excluir-categoria:hover {
+    border-color: var(--error);
+    color: var(--error);
+}
+
+.botao-excluir-categoria[hidden] {
+    display: none;
 }
 
 /* Sem essa regra, o "display: flex" acima vence o atributo hidden, e as

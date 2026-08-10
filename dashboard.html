@@ -134,7 +134,8 @@
                 <p class="pergunta-escolha" id="pergunta-escolha">Deseja registrar um:</p>
                 <div class="botoes-escolha">
                     <button type="button" class="botao-escolha-tipo escolha-gasto" data-tipo="gasto">Gasto</button>
-                    <button type="button" class="botao-escolha-tipo escolha-ganho" data-tipo="ganho">Ganho</button>
+                    <button type="button" class="botao-escolha-tipo escolha-ganho" id="botao-escolha-extra" data-tipo="extra">Extra</button>
+                    <button type="button" class="botao-escolha-tipo escolha-guardar" data-tipo="guardar">Guardar</button>
                 </div>
             </div>
 
@@ -154,9 +155,16 @@
                     <input type="number" id="campo-parcelas" min="2" max="48" step="1" placeholder="Ex: 5">
                 </div>
 
-                <div class="campo">
+                <div class="campo" id="campo-categoria-wrapper">
                     <label for="campo-categoria">Categoria</label>
-                    <select id="campo-categoria" required></select>
+                    <div class="categoria-com-lixeira">
+                        <select id="campo-categoria" required></select>
+                        <button type="button" class="botao-excluir-categoria" id="botao-excluir-categoria" hidden aria-label="Excluir categoria">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="campo" id="campo-nova-categoria-wrapper" hidden>
@@ -192,6 +200,18 @@
                     <span class="spinner-botao" hidden></span>
                 </button>
             </form>
+        </div>
+    </div>
+
+    <div class="fundo-modal" id="fundo-modal-conselho">
+        <div class="modal-lancamento">
+            <div class="cabecalho-modal">
+                <h3>💬 Um conselho rapidinho</h3>
+            </div>
+            <p class="texto-explicativo-guardado" id="texto-conselho">
+                Reparei que você fechou o mês passado sem nada guardado. Separar um valorzinho, mesmo pequeno, todo mês, faz muita diferença lá na frente — vale a pena pensar nisso.
+            </p>
+            <button type="button" class="botao-enviar" id="botao-fechar-conselho">Entendi</button>
         </div>
     </div>
 

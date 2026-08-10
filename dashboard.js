@@ -1,13 +1,13 @@
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-    collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs,
+    collection, addDoc, updateDoc, setDoc, deleteDoc, doc, getDoc, getDocs,
     query, where, orderBy, onSnapshot, Timestamp, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const CATEGORIAS_PADRAO = {
     gasto: ["Outros"],
-    ganho: ["Outros", "Guardar Dinheiro"]
+    ganho: ["Outros"]
 };
 
 // Cores usadas no gráfico de gastos por categoria (cicla se tiver mais categorias que cores)
@@ -52,6 +52,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const listaVazia = document.getElementById("lista-vazia");
     const linkExtrato = document.getElementById("link-extrato");
 
+    const fundoModalConselho = document.getElementById("fundo-modal-conselho");
+    const botaoFecharConselho = document.getElementById("botao-fechar-conselho");
     const bannerSalario = document.getElementById("banner-salario");
     const valorSalarioBanner = document.getElementById("valor-salario-banner");
     const botaoConfirmarSalario = document.getElementById("confirmar-salario");
@@ -69,6 +71,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const etapaEscolha = document.getElementById("etapa-escolha");
     const perguntaEscolha = document.getElementById("pergunta-escolha");
     const botoesEscolha = document.querySelectorAll(".botao-escolha-tipo");
+    const botaoEscolhaExtra = document.getElementById("botao-escolha-extra");
     const botaoTrocarTipo = document.getElementById("botao-trocar-tipo");
 
     const formulario = document.getElementById("formulario-lancamento");
@@ -76,7 +79,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const campoValor = document.getElementById("campo-valor");
     const campoParcelasWrapper = document.getElementById("campo-parcelas-wrapper");
     const campoParcelas = document.getElementById("campo-parcelas");
+    const campoCategoriaWrapper = document.getElementById("campo-categoria-wrapper");
     const campoCategoria = document.getElementById("campo-categoria");
+    const botaoExcluirCategoria = document.getElementById("botao-excluir-categoria");
     const campoNovaCategoriaWrapper = document.getElementById("campo-nova-categoria-wrapper");
     const campoNovaCategoria = document.getElementById("campo-nova-categoria");
     const campoDescricao = document.getElementById("campo-descricao");
@@ -101,6 +106,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let salarioPadrao = 0;
     let primeiroNome = "";
     let idEmEdicao = null; // null = criando novo | string = editando esse lançamento
+    let modoGuardar = false; // true = a pessoa escolheu "Guardar" no modal
 
     // ==========================================================================
     // 3. VERIFICAR LOGIN
@@ -124,9 +130,15 @@ document.addEventListener("DOMContentLoaded", function () {
         primeiroNome = (perfil.nome || "").trim().split(" ")[0] || "";
         salarioPadrao = perfil.salarioPadrao || 0;
 
+        // Pro perfil Diarista, o botão do meio continua mostrando "Ganho";
+        // pra todo mundo, mostra "Extra"
+        const ehDiarista = Array.isArray(perfil.profissoes) && perfil.profissoes.includes("Diarista");
+        botaoEscolhaExtra.textContent = ehDiarista ? "Ganho" : "Extra";
+
         await carregarCategoriasCustomizadas();
         atualizarRotuloMes();
         escutarLancamentosDoMes();
+        verificarConselhoMensal(perfil);
 
         // O banner de salário roda numa consulta separada, olhando pro mês
         // atual de verdade — independente de qual mês está sendo navegado
@@ -196,38 +208,85 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ==========================================================================
+    // CONSELHO FINANCEIRO — checa se o total guardado (histórico completo) está
+    // zerado, e mostra um aviso amigável uma vez por mês (nos primeiros dias)
+    // ==========================================================================
+    async function verificarConselhoMensal(perfil) {
+        const hoje = new Date();
+        if (hoje.getDate() > 3) return; // só nos primeiros dias do mês
+
+        const chaveDoMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+        if (perfil.ultimoAvisoConselho === chaveDoMes) return; // já mostrou esse mês
+
+        // consulta simples, sem índice composto: soma tudo que já foi guardado
+        const referenciaLancamentos = collection(db, "usuarios", uidAtual, "lancamentos");
+        const consultaGuardado = query(referenciaLancamentos, where("categoria", "==", "Guardar Dinheiro"));
+        const resultado = await getDocs(consultaGuardado);
+
+        let totalGuardado = 0;
+        resultado.forEach((documento) => { totalGuardado += documento.data().valor; });
+
+        if (totalGuardado <= 0) {
+            fundoModalConselho.classList.add("aberto");
+        }
+
+        // Marca que já verificou esse mês, pra não mostrar de novo até o próximo
+        await setDoc(doc(db, "usuarios", uidAtual), { ultimoAvisoConselho: chaveDoMes }, { merge: true });
+    }
+
+    botaoFecharConselho.addEventListener("click", () => {
+        fundoModalConselho.classList.remove("aberto");
+    });
+
+    // ==========================================================================
     // 6. CATEGORIAS
     // ==========================================================================
     async function carregarCategoriasCustomizadas() {
         const referencia = collection(db, "usuarios", uidAtual, "categorias");
         const resultado = await getDocs(referencia);
 
+        // Guarda {nome, id} de cada categoria customizada — o id é o que
+        // permite excluir depois lá no Firestore
         categoriasCustomizadas = { gasto: [], ganho: [] };
         resultado.forEach((documento) => {
             const dados = documento.data();
             if (dados.tipo === "gasto" || dados.tipo === "ganho") {
-                categoriasCustomizadas[dados.tipo].push(dados.nome);
+                categoriasCustomizadas[dados.tipo].push({ nome: dados.nome, id: documento.id });
             }
         });
     }
 
     function popularSelectCategorias(categoriaAtual) {
-        const listaCompleta = [...CATEGORIAS_PADRAO[tipoSelecionado], ...categoriasCustomizadas[tipoSelecionado]];
-
-        // Se a categoria do item sendo editado não estiver na lista (ex: foi
-        // uma categoria já excluída depois), adiciona ela também, senão o
-        // select perde o valor
-        if (categoriaAtual && !listaCompleta.includes(categoriaAtual)) {
-            listaCompleta.push(categoriaAtual);
-        }
-
         campoCategoria.innerHTML = "";
-        listaCompleta.forEach((nomeCategoria) => {
+
+        // Categorias fixas (Outros, etc.) — nunca têm lixeira
+        CATEGORIAS_PADRAO[tipoSelecionado].forEach((nomeCategoria) => {
             const opcao = document.createElement("option");
             opcao.value = nomeCategoria;
             opcao.textContent = nomeCategoria;
             campoCategoria.appendChild(opcao);
         });
+
+        // Categorias criadas pela pessoa — essas sim podem ser excluídas
+        categoriasCustomizadas[tipoSelecionado].forEach((categoria) => {
+            const opcao = document.createElement("option");
+            opcao.value = categoria.nome;
+            opcao.textContent = categoria.nome;
+            opcao.dataset.customizada = "true";
+            opcao.dataset.categoriaId = categoria.id;
+            campoCategoria.appendChild(opcao);
+        });
+
+        // Se a categoria do item sendo editado não estiver em nenhuma lista
+        // (ex: já foi excluída depois), adiciona ela também, senão o select
+        // perde o valor e some silenciosamente
+        const todasAsOpcoes = [...campoCategoria.options].map((opcao) => opcao.value);
+        if (categoriaAtual && !todasAsOpcoes.includes(categoriaAtual)) {
+            const opcao = document.createElement("option");
+            opcao.value = categoriaAtual;
+            opcao.textContent = categoriaAtual;
+            campoCategoria.appendChild(opcao);
+        }
 
         const opcaoNova = document.createElement("option");
         opcaoNova.value = "__nova__";
@@ -235,12 +294,37 @@ document.addEventListener("DOMContentLoaded", function () {
         campoCategoria.appendChild(opcaoNova);
 
         if (categoriaAtual) campoCategoria.value = categoriaAtual;
+        atualizarBotaoExcluirCategoria();
+    }
+
+    // Mostra a lixeira só quando a categoria selecionada no momento for uma
+    // que a própria pessoa criou (nunca nas fixas, tipo "Outros")
+    function atualizarBotaoExcluirCategoria() {
+        const opcaoSelecionada = campoCategoria.options[campoCategoria.selectedIndex];
+        botaoExcluirCategoria.hidden = !opcaoSelecionada || opcaoSelecionada.dataset.customizada !== "true";
     }
 
     campoCategoria.addEventListener("change", () => {
         const criandoNova = campoCategoria.value === "__nova__";
         campoNovaCategoriaWrapper.hidden = !criandoNova;
         campoNovaCategoria.required = criandoNova;
+        atualizarBotaoExcluirCategoria();
+    });
+
+    botaoExcluirCategoria.addEventListener("click", async () => {
+        const opcaoSelecionada = campoCategoria.options[campoCategoria.selectedIndex];
+        if (!opcaoSelecionada || opcaoSelecionada.dataset.customizada !== "true") return;
+
+        const confirmou = window.confirm(`Tem certeza de que deseja excluir a categoria "${opcaoSelecionada.value}"? Lançamentos antigos que usam ela continuam salvos normalmente no extrato.`);
+        if (!confirmou) return;
+
+        const categoriaId = opcaoSelecionada.dataset.categoriaId;
+        await deleteDoc(doc(db, "usuarios", uidAtual, "categorias", categoriaId));
+
+        categoriasCustomizadas[tipoSelecionado] = categoriasCustomizadas[tipoSelecionado].filter((c) => c.id !== categoriaId);
+        popularSelectCategorias();
+        campoCategoria.value = "Outros";
+        atualizarBotaoExcluirCategoria();
     });
 
     // ==========================================================================
@@ -248,6 +332,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================================================
     function abrirModalNovo() {
         idEmEdicao = null;
+        modoGuardar = false;
         tituloModal.textContent = "Novo lançamento";
         textoBotaoSalvar.textContent = "Salvar lançamento";
 
@@ -255,6 +340,7 @@ document.addEventListener("DOMContentLoaded", function () {
         formulario.hidden = true;
         formulario.reset();
         esconderAviso();
+        campoCategoriaWrapper.hidden = false;
         campoNovaCategoriaWrapper.hidden = true;
         campoParcelasWrapper.hidden = true;
         campoFixo.checked = false;
@@ -274,6 +360,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================================================
     function abrirModalEdicao(idLancamento, dados) {
         idEmEdicao = idLancamento;
+        modoGuardar = false;
         tituloModal.textContent = "Editar lançamento";
         textoBotaoSalvar.textContent = "Salvar alterações";
 
@@ -285,6 +372,7 @@ document.addEventListener("DOMContentLoaded", function () {
         botaoTrocarTipo.hidden = true; // não dá pra trocar o tipo de um lançamento já existente
         rotuloValor.textContent = "Valor";
         opcoesEspeciaisGasto.hidden = true; // editar não deve gerar novas parcelas/repetições
+        campoCategoriaWrapper.hidden = false;
 
         popularSelectCategorias(dados.categoria);
         campoValor.value = dados.valor;
@@ -300,16 +388,29 @@ document.addEventListener("DOMContentLoaded", function () {
         botaoTrocarTipo.hidden = false;
     }
 
-    function irParaFormulario(tipo) {
-        tipoSelecionado = tipo;
+    function irParaFormulario(tipoClicado) {
+        // "guardar" não é um tipo de lançamento de verdade — por baixo dos
+        // panos ele é um "ganho" com categoria fixa "Guardar Dinheiro"
+        modoGuardar = tipoClicado === "guardar";
+        tipoSelecionado = modoGuardar ? "ganho" : tipoClicado;
+
         etapaEscolha.hidden = true;
         formulario.hidden = false;
 
-        botaoTrocarTipo.textContent = tipo === "gasto" ? "← Gasto (trocar)" : "← Ganho (trocar)";
+        const rotulosBotaoTrocar = {
+            gasto: "← Gasto (trocar)",
+            extra: `← ${botaoEscolhaExtra.textContent} (trocar)`,
+            guardar: "← Guardar (trocar)"
+        };
+        botaoTrocarTipo.textContent = rotulosBotaoTrocar[tipoClicado];
         rotuloValor.textContent = "Valor";
-        opcoesEspeciaisGasto.hidden = tipo !== "gasto";
+        opcoesEspeciaisGasto.hidden = tipoClicado !== "gasto";
 
-        popularSelectCategorias();
+        // No modo Guardar, a categoria já é fixa — não faz sentido escolher
+        campoCategoriaWrapper.hidden = modoGuardar;
+        campoNovaCategoriaWrapper.hidden = true;
+
+        if (!modoGuardar) popularSelectCategorias();
 
         const hoje = new Date();
         campoData.value = hoje.toISOString().split("T")[0];
@@ -392,7 +493,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         let categoriaFinal = campoCategoria.value;
-        if (categoriaFinal === "__nova__") {
+        if (modoGuardar) {
+            categoriaFinal = "Guardar Dinheiro";
+        } else if (categoriaFinal === "__nova__") {
             const nomeNovaCategoria = campoNovaCategoria.value.trim();
             if (!nomeNovaCategoria) {
                 mostrarAviso("Digita o nome da nova categoria.");
@@ -408,12 +511,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
             definirCarregando(true);
             try {
-                if (campoCategoria.value === "__nova__") {
-                    await addDoc(collection(db, "usuarios", uidAtual, "categorias"), {
+                if (campoCategoria.value === "__nova__" && !modoGuardar) {
+                    const referenciaCategoria = await addDoc(collection(db, "usuarios", uidAtual, "categorias"), {
                         nome: categoriaFinal,
                         tipo: tipoSelecionado
                     });
-                    categoriasCustomizadas[tipoSelecionado].push(categoriaFinal);
+                    categoriasCustomizadas[tipoSelecionado].push({ nome: categoriaFinal, id: referenciaCategoria.id });
                 }
 
                 await updateDoc(doc(db, "usuarios", uidAtual, "lancamentos", idEmEdicao), {
@@ -444,12 +547,12 @@ document.addEventListener("DOMContentLoaded", function () {
         definirCarregando(true);
 
         try {
-            if (campoCategoria.value === "__nova__") {
-                await addDoc(collection(db, "usuarios", uidAtual, "categorias"), {
+            if (campoCategoria.value === "__nova__" && !modoGuardar) {
+                const referenciaCategoria = await addDoc(collection(db, "usuarios", uidAtual, "categorias"), {
                     nome: categoriaFinal,
                     tipo: tipoSelecionado
                 });
-                categoriasCustomizadas[tipoSelecionado].push(categoriaFinal);
+                categoriasCustomizadas[tipoSelecionado].push({ nome: categoriaFinal, id: referenciaCategoria.id });
             }
 
             const dataEscolhida = construirDataComHorarioReal(campoData.value);
@@ -642,6 +745,8 @@ document.addEventListener("DOMContentLoaded", function () {
     listaLancamentos.addEventListener("click", async (evento) => {
         const botaoExcluir = evento.target.closest(".botao-excluir");
         if (botaoExcluir) {
+            const confirmou = window.confirm("Tem certeza de que deseja excluir este lançamento?");
+            if (!confirmou) return;
             await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", botaoExcluir.dataset.id));
             return;
         }
@@ -695,12 +800,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
         documentos.forEach((documento) => {
             const dados = documento.data();
+
+            // Dinheiro guardado entra como uma fatia própria do gráfico, pra
+            // mostrar o quanto foi poupado ao lado do que foi gasto
+            if (dados.categoria === "Guardar Dinheiro") {
+                totaisPorCategoria["Guardado"] = (totaisPorCategoria["Guardado"] || 0) + dados.valor;
+                return;
+            }
+
             if (dados.tipo !== "gasto") return;
             totaisPorCategoria[dados.categoria] = (totaisPorCategoria[dados.categoria] || 0) + dados.valor;
         });
 
         const categorias = Object.keys(totaisPorCategoria)
             .map((nome) => ({ nome, valor: totaisPorCategoria[nome] }))
+            .filter((item) => item.valor > 0)
             .sort((a, b) => b.valor - a.valor);
 
         const totalGeral = categorias.reduce((soma, item) => soma + item.valor, 0);
@@ -723,7 +837,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         categorias.forEach((item, indice) => {
             const percentual = item.valor / totalGeral;
-            const cor = PALETA_GRAFICO[indice % PALETA_GRAFICO.length];
+            const cor = item.nome === "Guardado" ? "#34D399" : PALETA_GRAFICO[indice % PALETA_GRAFICO.length];
             const comprimentoFatia = percentual * circunferencia;
 
             const circulo = document.createElementNS("http://www.w3.org/2000/svg", "circle");

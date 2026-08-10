@@ -31,6 +31,7 @@
             <section class="cartao-saldo-principal">
                 <span class="rotulo-cartao">Total guardado</span>
                 <span class="valor-saldo-grande" id="total-guardado">R$ 0,00</span>
+                <button type="button" class="botao-retirar" id="botao-abrir-retirada">Retirar Dinheiro</button>
             </section>
 
             <p class="texto-explicativo-guardado">
@@ -40,6 +41,28 @@
             <ul class="lista-lancamentos" id="lista-guardado"></ul>
             <p class="lista-vazia" id="guardado-vazio" hidden>Você ainda não guardou nenhum valor.</p>
         </main>
+    </div>
+
+    <div class="fundo-modal" id="fundo-modal-retirada">
+        <div class="modal-lancamento">
+            <div class="cabecalho-modal">
+                <h3>Retirar dinheiro guardado</h3>
+                <button class="botao-fechar-modal" id="botao-fechar-retirada" aria-label="Fechar">✕</button>
+            </div>
+            <p class="texto-explicativo-guardado" id="texto-disponivel-retirada"></p>
+            <div class="campo">
+                <label for="campo-valor-retirada">Quanto você quer retirar</label>
+                <div class="valor-wrapper">
+                    <span class="prefixo-valor">R$</span>
+                    <input type="number" id="campo-valor-retirada" step="0.01" min="0" placeholder="0,00">
+                </div>
+            </div>
+            <div class="mensagem-aviso" id="mensagem-aviso-retirada" role="alert"></div>
+            <button type="button" class="botao-enviar" id="botao-confirmar-retirada">
+                <span class="texto-botao">Confirmar retirada</span>
+                <span class="spinner-botao" hidden></span>
+            </button>
+        </div>
     </div>
 
     <script type="module" src="guardado.js"></script>
