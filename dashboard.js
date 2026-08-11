@@ -342,6 +342,7 @@ document.addEventListener("DOMContentLoaded", function () {
         formulario.reset();
         esconderAviso();
         campoCategoriaWrapper.hidden = false;
+        campoCategoria.required = true;
         campoNovaCategoriaWrapper.hidden = true;
         campoParcelasWrapper.hidden = true;
         campoFixo.checked = false;
@@ -374,6 +375,7 @@ document.addEventListener("DOMContentLoaded", function () {
         rotuloValor.textContent = "Valor";
         opcoesEspeciaisGasto.hidden = true; // editar não deve gerar novas parcelas/repetições
         campoCategoriaWrapper.hidden = false;
+        campoCategoria.required = true;
 
         popularSelectCategorias(dados.categoria);
         campoValor.value = dados.valor;
@@ -408,8 +410,12 @@ document.addEventListener("DOMContentLoaded", function () {
         rotuloValor.textContent = "Valor";
         opcoesEspeciaisGasto.hidden = tipoClicado !== "gasto";
 
-        // No modo Guardar, a categoria já é fixa — não faz sentido escolher
+        // No modo Guardar, a categoria já é fixa — não faz sentido escolher.
+        // Importante: precisa desligar o "required" também, senão o navegador
+        // bloqueia o envio do formulário por causa de um campo obrigatório
+        // que está escondido (isso que causava o "bloqueio" depois do 1º uso)
         campoCategoriaWrapper.hidden = modoGuardar;
+        campoCategoria.required = !modoGuardar;
         campoNovaCategoriaWrapper.hidden = true;
 
         if (!modoGuardar) popularSelectCategorias();
@@ -715,9 +721,17 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================================================
     function renderizarLista(documentos) {
         listaLancamentos.innerHTML = "";
-        listaVazia.hidden = documentos.length > 0;
 
-        const documentosVisiveis = documentos.slice(0, LIMITE_ITENS_LISTA_INICIAL);
+        // A "Retirada" (valor negativo em "Guardar Dinheiro") é só um registro
+        // interno de controle do cofrinho — quem representa o dinheiro voltando
+        // pro saldo, de forma visível pra pessoa, é a "Retirada da Reserva"
+        const documentosParaExibir = documentos.filter(
+            (documento) => !(documento.data().categoria === "Guardar Dinheiro" && documento.data().valor < 0)
+        );
+
+        listaVazia.hidden = documentosParaExibir.length > 0;
+
+        const documentosVisiveis = documentosParaExibir.slice(0, LIMITE_ITENS_LISTA_INICIAL);
 
         documentosVisiveis.forEach((documento) => {
             const dados = documento.data();
@@ -774,9 +788,17 @@ document.addEventListener("DOMContentLoaded", function () {
         documentos.forEach((documento) => {
             const dados = documento.data();
 
-            // "Guardar Dinheiro" aparece na lista pro histórico, mas não conta
-            // no saldo principal — só é visível de verdade na tela "Saldo Guardado"
-            if (dados.categoria === "Guardar Dinheiro") return;
+            // "Guardar Dinheiro" tem uma regra própria, pra fechar a conta certinho:
+            // - Depósito (valor positivo): reduz o saldo, como se fosse um gasto —
+            //   o dinheiro "saiu" do disponível e foi pra reserva.
+            // - Retirada (valor negativo, gerado automaticamente ao resgatar): NÃO
+            //   mexe no saldo aqui — quem devolve o dinheiro é o lançamento separado
+            //   "Retirada da Reserva" (esse sim conta como ganho normal). Se
+            //   contássemos os dois, o valor voltaria em dobro.
+            if (dados.categoria === "Guardar Dinheiro") {
+                if (dados.valor > 0) totalGastos += dados.valor;
+                return;
+            }
 
             if (dados.tipo === "ganho") {
                 totalGanhos += dados.valor;

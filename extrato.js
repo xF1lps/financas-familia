@@ -54,7 +54,12 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     function aplicarFiltrosERenderizar() {
-        let filtrados = todosOsLancamentos;
+        // A "Retirada" (valor negativo em "Guardar Dinheiro") é só um registro
+        // interno de controle do cofrinho — não aparece pra pessoa em lugar
+        // nenhum das listas normais, só a "Retirada da Reserva" (verde) aparece
+        let filtrados = todosOsLancamentos.filter(
+            (documento) => !(documento.data().categoria === "Guardar Dinheiro" && documento.data().valor < 0)
+        );
 
         if (filtroMes.value) {
             const [anoFiltro, mesFiltro] = filtroMes.value.split("-").map(Number);

@@ -127,25 +127,25 @@ document.addEventListener("DOMContentLoaded", function () {
         botaoConfirmarRetirada.disabled = true;
         spinnerRetirada.hidden = false;
 
-        const agora = new Date();
-
         // 1) Reduz o total guardado (valor negativo, mesma categoria)
         await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
             tipo: "gasto",
             valor: -valor,
             categoria: "Guardar Dinheiro",
             descricao: "Retirada",
-            data: Timestamp.fromDate(agora),
+            data: Timestamp.fromDate(new Date()),
             criadoEm: serverTimestamp()
         });
 
-        // 2) Injeta o valor de volta no saldo principal
+        // 2) Injeta o valor de volta no saldo principal (horário capturado de
+        // novo aqui, pra nunca nascer com o mesmo timestamp exato do registro
+        // acima — evita ambiguidade na ordenação por data)
         await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
             tipo: "ganho",
             valor: valor,
             categoria: "Retirada da Reserva",
             descricao: "",
-            data: Timestamp.fromDate(agora),
+            data: Timestamp.fromDate(new Date()),
             criadoEm: serverTimestamp()
         });
 
