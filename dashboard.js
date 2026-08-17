@@ -57,9 +57,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const fundoModalAniversario = document.getElementById("fundo-modal-aniversario");
     const textoAniversario = document.getElementById("texto-aniversario");
     const botaoFecharAniversario = document.getElementById("botao-fechar-aniversario");
-    const fundoModalAniversario = document.getElementById("fundo-modal-aniversario");
-    const textoAniversario = document.getElementById("texto-aniversario");
-    const botaoFecharAniversario = document.getElementById("botao-fechar-aniversario");
     const bannerSalario = document.getElementById("banner-salario");
     const valorSalarioBanner = document.getElementById("valor-salario-banner");
     const botaoConfirmarSalario = document.getElementById("confirmar-salario");
@@ -146,7 +143,6 @@ document.addEventListener("DOMContentLoaded", function () {
         atualizarRotuloMes();
         escutarLancamentosDoMes();
         verificarConselhoMensal(perfil);
-        verificarAniversario(perfil);
         verificarAniversario(perfil);
 
         // O banner de salário roda numa consulta separada, olhando pro mês
@@ -269,34 +265,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         fundoModalAniversario.classList.add("aberto");
         await setDoc(doc(db, "usuarios", uidAtual), { ultimoParabens: anoAtual }, { merge: true });
-    }
-
-    botaoFecharAniversario.addEventListener("click", () => {
-        fundoModalAniversario.classList.remove("aberto");
-    });
-
-    // ==========================================================================
-    // ANIVERSÁRIO — compara dia/mês de nascimento com hoje, mostra o pop-up
-    // uma vez por ano (guarda o ano em que já mostrou, no perfil)
-    // ==========================================================================
-    async function verificarAniversario(perfil) {
-        if (!perfil.dataNascimento) return;
-
-        const hoje = new Date();
-        const nascimento = new Date(`${perfil.dataNascimento}T12:00:00`);
-
-        const ehAniversarioHoje = nascimento.getDate() === hoje.getDate()
-            && nascimento.getMonth() === hoje.getMonth();
-
-        if (!ehAniversarioHoje) return;
-        if (perfil.ultimoParabens === String(hoje.getFullYear())) return; // já mostrou esse ano
-
-        textoAniversario.textContent = primeiroNome
-            ? `Parabéns, ${primeiroNome}! Desejamos um ano incrível, cheio de conquistas — inclusive as financeiras! 🎂`
-            : "Desejamos um ano incrível, cheio de conquistas — inclusive as financeiras! 🎂";
-
-        fundoModalAniversario.classList.add("aberto");
-        await setDoc(doc(db, "usuarios", uidAtual), { ultimoParabens: String(hoje.getFullYear()) }, { merge: true });
     }
 
     botaoFecharAniversario.addEventListener("click", () => {
