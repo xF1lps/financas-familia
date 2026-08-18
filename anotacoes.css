@@ -1,0 +1,92 @@
+.lista-contas {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background-color: var(--surface);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.item-conta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--borda);
+}
+
+.item-conta:last-child {
+    border-bottom: none;
+}
+
+.info-conta {
+    flex: 1;
+    min-width: 0;
+}
+
+.nome-conta {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.meta-conta {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.valor-conta {
+    font-family: var(--fonte-titulo);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--gasto-cor);
+    white-space: nowrap;
+}
+
+.status-conta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.botao-marcar-pago {
+    background: none;
+    border: 1px solid var(--borda);
+    color: var(--text-muted);
+    font-family: var(--fonte-corpo);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.botao-marcar-pago:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.botao-marcar-pago.pago {
+    background-color: rgba(52, 211, 153, 0.12);
+    border-color: var(--sucesso);
+    color: var(--sucesso);
+}
+
+.botao-excluir-conta {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    transition: color 0.2s ease;
+}
+
+.botao-excluir-conta:hover {
+    color: var(--error);
+}

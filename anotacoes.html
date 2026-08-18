@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Anotações — Finanças</title>
+    <title>Contas e Vencimentos — Finanças</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="dashboard.css">
     <link rel="stylesheet" href="extrato.css">
+    <link rel="stylesheet" href="anotacoes.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0A0A0A">
     <link rel="apple-touch-icon" href="icone-192.png">
@@ -24,17 +25,17 @@
     <div class="app-shell">
         <header class="topo-app">
             <a href="dashboard.html" class="link-voltar" aria-label="Voltar">←</a>
-            <div class="marca-topo">Anotações</div>
+            <div class="marca-topo">Contas e Vencimentos</div>
             <span style="width:40px"></span>
         </header>
 
         <main class="conteudo-principal">
             <p class="texto-explicativo-guardado">
-                Contas que se repetem todo mês — só pra você lembrar o dia de vencer. Não manda aviso nenhum, é só uma lista de consulta.
+                Contas que se repetem todo mês. Marca como paga quando quitar — no mês seguinte ela volta a aparecer como pendente sozinha.
             </p>
 
-            <ul class="lista-lancamentos" id="lista-anotacoes"></ul>
-            <p class="lista-vazia" id="anotacoes-vazio" hidden>Nenhuma anotação ainda.</p>
+            <ul class="lista-contas" id="lista-anotacoes"></ul>
+            <p class="lista-vazia" id="anotacoes-vazio" hidden>Nenhuma conta cadastrada ainda.</p>
 
             <button type="button" class="botao-retirar" id="botao-abrir-nova-anotacao" style="margin-top:20px;">+ Adicionar conta</button>
         </main>
@@ -43,13 +44,21 @@
     <div class="fundo-modal" id="fundo-modal-anotacao">
         <div class="modal-lancamento">
             <div class="cabecalho-modal">
-                <h3>Nova anotação</h3>
+                <h3>Nova conta</h3>
                 <button class="botao-fechar-modal" id="botao-fechar-anotacao" aria-label="Fechar">✕</button>
             </div>
 
             <div class="campo">
                 <label for="campo-nome-conta">Nome da conta</label>
                 <input type="text" id="campo-nome-conta" placeholder="Ex: Internet">
+            </div>
+
+            <div class="campo">
+                <label for="campo-valor-conta">Valor</label>
+                <div class="valor-wrapper">
+                    <span class="prefixo-valor">R$</span>
+                    <input type="number" id="campo-valor-conta" step="0.01" min="0" placeholder="0,00">
+                </div>
             </div>
 
             <div class="campo">
@@ -60,7 +69,7 @@
             <div class="mensagem-aviso" id="mensagem-aviso-anotacao" role="alert"></div>
 
             <button type="button" class="botao-enviar" id="botao-salvar-anotacao">
-                <span class="texto-botao">Salvar anotação</span>
+                <span class="texto-botao">Salvar conta</span>
                 <span class="spinner-botao" hidden></span>
             </button>
         </div>
