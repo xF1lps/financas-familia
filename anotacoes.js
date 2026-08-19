@@ -19,11 +19,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let uidAtual = null;
 
-    // Chave do mês atual, tipo "2026-08" — usada pra saber se o "pago" ainda
-    // vale ou se já é de um mês anterior (e portanto a conta voltou a vencer)
-    const hoje = new Date();
-    const mesAtualChave = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
-
     onAuthStateChanged(auth, (usuario) => {
         if (!usuario) {
             window.location.href = "index.html";
@@ -46,19 +41,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
             documentosOrdenados.forEach((documento) => {
                 const dados = documento.data();
-                const jaPagaEsseMes = dados.pagoEm === mesAtualChave;
+                const estaPaga = dados.pago === true;
+
+                // Data/hora em que a anotação foi criada, pra mostrar na tela
+                let dataCriacaoTexto = "";
+                if (dados.criadoEm) {
+                    const dataCriacao = dados.criadoEm.toDate();
+                    const dataFormatada = dataCriacao.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+                    const horaFormatada = dataCriacao.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false });
+                    dataCriacaoTexto = ` · Anotado em ${dataFormatada} às ${horaFormatada}`;
+                }
 
                 const item = document.createElement("li");
                 item.className = "item-conta";
                 item.innerHTML = `
                     <div class="info-conta">
                         <div class="nome-conta">${dados.nome}</div>
-                        <div class="meta-conta">Vence todo dia ${dados.diaVencimento}</div>
+                        <div class="meta-conta">Vence dia ${dados.diaVencimento}${dataCriacaoTexto}</div>
                     </div>
                     <span class="valor-conta">${formatarMoeda(dados.valor || 0)}</span>
                     <div class="status-conta">
-                        <button class="botao-marcar-pago ${jaPagaEsseMes ? "pago" : ""}" data-id="${documento.id}" data-pago="${jaPagaEsseMes}">
-                            ${jaPagaEsseMes ? "✓ Paga" : "Marcar como paga"}
+                        <button class="botao-marcar-pago ${estaPaga ? "pago" : ""}" data-id="${documento.id}" data-pago="${estaPaga}">
+                            ${estaPaga ? "✓ Paga" : "Marcar como paga"}
                         </button>
                         <button class="botao-excluir-conta" data-id="${documento.id}" aria-label="Excluir conta">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -72,20 +76,21 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Marcar/desmarcar como paga (clique alterna) e excluir
+    // Marcar/desmarcar como paga (fica assim pra sempre, não reseta sozinho
+    // no mês seguinte — é uma anotação única, não uma conta fixa recorrente)
     listaAnotacoes.addEventListener("click", async (evento) => {
         const botaoPago = evento.target.closest(".botao-marcar-pago");
         if (botaoPago) {
             const estavaPago = botaoPago.dataset.pago === "true";
             await updateDoc(doc(db, "usuarios", uidAtual, "anotacoes", botaoPago.dataset.id), {
-                pagoEm: estavaPago ? null : mesAtualChave
+                pago: !estavaPago
             });
             return;
         }
 
         const botaoExcluir = evento.target.closest(".botao-excluir-conta");
         if (botaoExcluir) {
-            const confirmou = window.confirm("Tem certeza de que deseja excluir essa conta?");
+            const confirmou = window.confirm("Tem certeza de que deseja excluir essa anotação?");
             if (!confirmou) return;
             await deleteDoc(doc(db, "usuarios", uidAtual, "anotacoes", botaoExcluir.dataset.id));
         }
@@ -138,7 +143,7 @@ document.addEventListener("DOMContentLoaded", function () {
             nome,
             valor,
             diaVencimento: dia,
-            pagoEm: null,
+            pago: false,
             criadoEm: serverTimestamp()
         });
 
