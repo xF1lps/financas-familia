@@ -15,7 +15,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const spinnerBotao = botaoEnviar.querySelector(".spinner-botao");
 
     let uidAtual = null;
-    const telaCarregamento = document.getElementById("tela-carregamento");
 
     // Limita a seleção a no máximo 2 profissões marcadas ao mesmo tempo:
     // quando já tem 2 marcadas, desativa as demais até uma ser desmarcada.
@@ -40,7 +39,6 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
         uidAtual = usuario.uid;
-        telaCarregamento.classList.add("oculto");
     });
 
     formulario.addEventListener("submit", async (evento) => {

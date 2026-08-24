@@ -106,14 +106,20 @@
     background: none;
     border: 1px solid var(--error);
     color: var(--error);
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+/* Sem essa regra, o "display: flex" acima vence o atributo hidden, e a
+   lixeira fica visível o tempo todo em vez de só no modo seleção */
+.botao-lixeira-selecao[hidden] {
+    display: none;
 }
 
 .botao-lixeira-selecao:hover {

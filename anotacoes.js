@@ -127,11 +127,15 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================================================
     // LEMBRETES DO MÊS SELECIONADO
     // ==========================================================================
+    let pararDeEscutarAnotacoes = null;
+
     function escutarAnotacoesDoMes() {
+        if (pararDeEscutarAnotacoes) pararDeEscutarAnotacoes();
+
         const referencia = collection(db, "usuarios", uidAtual, "anotacoes");
         const consulta = query(referencia, where("mesReferencia", "==", chaveDoMesSelecionado()));
 
-        onSnapshot(consulta, (snapshot) => {
+        pararDeEscutarAnotacoes = onSnapshot(consulta, (snapshot) => {
             const documentosOrdenados = [...snapshot.docs].sort(
                 (a, b) => a.data().diaVencimento - b.data().diaVencimento
             );

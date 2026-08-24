@@ -6,7 +6,6 @@ import {
 
 document.addEventListener("DOMContentLoaded", function () {
 
-    const telaCarregamento = document.getElementById("tela-carregamento");
     const listaExtrato = document.getElementById("lista-extrato");
     const extratoVazio = document.getElementById("extrato-vazio");
     const filtroMes = document.getElementById("filtro-mes");
@@ -28,7 +27,6 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
         uidAtual = usuario.uid;
-        telaCarregamento.classList.add("oculto");
         escutarTodosOsLancamentos();
     });
 

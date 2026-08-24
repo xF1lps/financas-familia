@@ -23,10 +23,10 @@ body#pagina-login {
 }
 
 /* ==========================================================================
-   TELA DE CARREGAMENTO INICIAL
-   Cobre a tela de login até o app confirmar se a pessoa já está logada —
-   sem isso, o formulário de login "pisca" na tela por uma fração de segundo
-   antes de redirecionar quem já tem sessão salva.
+   TELA DE CARREGAMENTO (só na tela de login/entrada)
+   Some sozinha assim que o Firebase confirmar se a pessoa já está logada —
+   e tem um tempo máximo garantido (visto no app.js) pra nunca ficar travada
+   pra sempre, mesmo se a internet falhar no meio do caminho.
    ========================================================================== */
 .tela-carregamento {
     position: fixed;

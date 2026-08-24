@@ -24,16 +24,29 @@ document.addEventListener("DOMContentLoaded", function () {
     const botaoOlhoConfirmar = document.getElementById("botao-olho-confirmar");
     const telaCarregamento = document.getElementById("tela-carregamento");
 
-    // A splash precisa ficar visível por pelo menos esse tempo, mesmo que o
-    // Firebase responda mais rápido — evita a sensação de "piscada"
-    const TEMPO_MINIMO_SPLASH = 1400;
+    // ==========================================================================
+    // TELA DE CARREGAMENTO — com rede de segurança
+    // A splash fica visível até o Firebase confirmar se a pessoa já está
+    // logada. Só que, se por qualquer motivo isso demorar demais (internet
+    // ruim, Firebase fora do ar, etc.), o TEMPO_MAXIMO_SEGURANCA garante que
+    // ela some sozinha de qualquer jeito — nunca mais fica travada pra sempre.
+    // ==========================================================================
+    const TEMPO_MINIMO_VISIVEL = 800;   // pra dar tempo da animação aparecer bonita
+    const TEMPO_MAXIMO_SEGURANCA = 4000; // rede de segurança: nunca passa disso
     const inicioCarregamento = Date.now();
+    let splashJaEscondida = false;
 
-    function esconderSplashComAtraso() {
+    function esconderSplash() {
+        if (splashJaEscondida) return;
+        splashJaEscondida = true;
+
         const decorrido = Date.now() - inicioCarregamento;
-        const restante = Math.max(0, TEMPO_MINIMO_SPLASH - decorrido);
-        setTimeout(() => telaCarregamento.classList.add("oculto"), restante);
+        const espera = Math.max(0, TEMPO_MINIMO_VISIVEL - decorrido);
+        setTimeout(() => telaCarregamento.classList.add("oculto"), espera);
     }
+
+    // Rede de segurança: dispara sozinha, independente de qualquer outra coisa
+    setTimeout(esconderSplash, TEMPO_MAXIMO_SEGURANCA);
 
     let modoAtual = "entrar";
 
@@ -171,13 +184,14 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Se a pessoa já estiver logada (o Firebase lembra sozinho), pula a tela de
-    // login e já decide pra onde mandar — sem nunca revelar o formulário atrás
-    // da tela de carregamento. Se não estiver logada, aí sim mostra o login.
+    // login e já decide pra onde mandar — a splash fica visível até a página
+    // trocar de verdade. Se não estiver logada, esconde a splash e mostra o
+    // formulário.
     onAuthStateChanged(auth, (usuario) => {
         if (usuario) {
             rotearAposLogin(usuario.uid);
         } else {
-            esconderSplashComAtraso();
+            esconderSplash();
         }
     });
 

@@ -32,7 +32,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================================================
     // 1. REFERÊNCIAS AOS ELEMENTOS DA TELA
     // ==========================================================================
-    const telaCarregamento = document.getElementById("tela-carregamento");
     const emailUsuario = document.getElementById("email-usuario");
     const botaoSair = document.getElementById("botao-sair");
 
@@ -155,8 +154,6 @@ document.addEventListener("DOMContentLoaded", function () {
         // O banner de salário roda numa consulta separada, olhando pro mês
         // atual de verdade — independente de qual mês está sendo navegado
         if (salarioPadrao > 0) escutarSalarioDoMes();
-
-        telaCarregamento.classList.add("oculto");
     });
 
     botaoSair.addEventListener("click", async () => {
