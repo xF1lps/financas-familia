@@ -32,7 +32,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const tituloModalAnotacao = document.getElementById("titulo-modal-anotacao");
     const campoNomeConta = document.getElementById("campo-nome-conta");
     const campoValorConta = document.getElementById("campo-valor-conta");
+    const campoDiaVencimentoWrapper = document.getElementById("campo-dia-vencimento-wrapper");
     const campoDiaVencimento = document.getElementById("campo-dia-vencimento");
+    const campoSemVencimento = document.getElementById("campo-sem-vencimento");
     const mensagemAvisoAnotacao = document.getElementById("mensagem-aviso-anotacao");
     const botaoSalvarAnotacao = document.getElementById("botao-salvar-anotacao");
     const textoBotaoSalvarAnotacao = botaoSalvarAnotacao.querySelector(".texto-botao");
@@ -137,7 +139,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         pararDeEscutarAnotacoes = onSnapshot(consulta, (snapshot) => {
             const documentosOrdenados = [...snapshot.docs].sort(
-                (a, b) => a.data().diaVencimento - b.data().diaVencimento
+                (a, b) => (a.data().diaVencimento ?? 999) - (b.data().diaVencimento ?? 999)
             );
 
             ultimoTotalAnotacoes = documentosOrdenados.reduce((soma, documento) => soma + (documento.data().valor || 0), 0);
@@ -163,6 +165,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 dataCriacaoTexto = ` · Anotado em ${dataFormatada} às ${horaFormatada}`;
             }
 
+            const temVencimento = dados.diaVencimento !== null && dados.diaVencimento !== undefined;
+            const textoVencimento = temVencimento ? `Vence dia ${dados.diaVencimento}` : "Sem vencimento definido";
+
             const item = document.createElement("li");
             item.className = "item-conta";
             item.dataset.id = documento.id;
@@ -171,7 +176,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 ${modoSelecao ? `<input type="checkbox" class="checkbox-selecao" data-id="${documento.id}">` : ""}
                 <div class="info-conta">
                     <div class="nome-conta">${dados.nome}</div>
-                    <div class="meta-conta">Vence dia ${dados.diaVencimento}${dataCriacaoTexto}</div>
+                    <div class="meta-conta">${textoVencimento}${dataCriacaoTexto}</div>
                 </div>
                 <span class="valor-conta">${formatarMoeda(dados.valor || 0)}</span>
                 <div class="status-conta">
@@ -264,6 +269,14 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================================================
     // NOVO LEMBRETE / EDITAR LEMBRETE (mesmo modal, muda o comportamento)
     // ==========================================================================
+    function alternarCampoVencimento() {
+        const semVencimento = campoSemVencimento.checked;
+        campoDiaVencimentoWrapper.hidden = semVencimento;
+        if (semVencimento) campoDiaVencimento.value = "";
+    }
+
+    campoSemVencimento.addEventListener("change", alternarCampoVencimento);
+
     function abrirModalAnotacao() {
         idEmEdicao = null;
         tituloModalAnotacao.textContent = "Novo lembrete";
@@ -271,6 +284,8 @@ document.addEventListener("DOMContentLoaded", function () {
         campoNomeConta.value = "";
         campoValorConta.value = "";
         campoDiaVencimento.value = "";
+        campoSemVencimento.checked = false;
+        alternarCampoVencimento();
         mensagemAvisoAnotacao.classList.remove("visivel");
         fundoModalAnotacao.classList.add("aberto");
     }
@@ -281,7 +296,12 @@ document.addEventListener("DOMContentLoaded", function () {
         textoBotaoSalvarAnotacao.textContent = "Salvar alterações";
         campoNomeConta.value = dados.nome;
         campoValorConta.value = dados.valor;
-        campoDiaVencimento.value = dados.diaVencimento;
+
+        const temVencimento = dados.diaVencimento !== null && dados.diaVencimento !== undefined;
+        campoDiaVencimento.value = temVencimento ? dados.diaVencimento : "";
+        campoSemVencimento.checked = !temVencimento;
+        alternarCampoVencimento();
+
         mensagemAvisoAnotacao.classList.remove("visivel");
         fundoModalAnotacao.classList.add("aberto");
     }
@@ -299,7 +319,8 @@ document.addEventListener("DOMContentLoaded", function () {
     botaoSalvarAnotacao.addEventListener("click", async () => {
         const nome = campoNomeConta.value.trim();
         const valor = parseFloat(campoValorConta.value);
-        const dia = parseInt(campoDiaVencimento.value, 10);
+        const temVencimento = !campoSemVencimento.checked;
+        const dia = temVencimento ? parseInt(campoDiaVencimento.value, 10) : null;
         mensagemAvisoAnotacao.classList.remove("visivel");
 
         if (!nome) {
@@ -312,8 +333,8 @@ document.addEventListener("DOMContentLoaded", function () {
             mensagemAvisoAnotacao.classList.add("visivel");
             return;
         }
-        if (!dia || dia < 1 || dia > 31) {
-            mensagemAvisoAnotacao.textContent = "Digita um dia válido (entre 1 e 31).";
+        if (temVencimento && (!dia || dia < 1 || dia > 31)) {
+            mensagemAvisoAnotacao.textContent = "Digita um dia válido (entre 1 e 31), ou marca \"Não tem vencimento definido\".";
             mensagemAvisoAnotacao.classList.add("visivel");
             return;
         }

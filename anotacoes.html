@@ -91,9 +91,16 @@
                 </div>
             </div>
 
-            <div class="campo">
+            <div class="campo" id="campo-dia-vencimento-wrapper">
                 <label for="campo-dia-vencimento">Dia do vencimento</label>
                 <input type="number" id="campo-dia-vencimento" min="1" max="31" placeholder="Ex: 15">
+            </div>
+
+            <div class="campo">
+                <label class="item-checkbox">
+                    <input type="checkbox" id="campo-sem-vencimento">
+                    Não tem data de vencimento definida
+                </label>
             </div>
 
             <div class="mensagem-aviso" id="mensagem-aviso-anotacao" role="alert"></div>
