@@ -52,7 +52,7 @@
                 <span class="email-usuario" id="email-usuario"></span>
             </div>
             <a href="guardado.html" class="botao-encerrar-sessao">Saldo Guardado</a>
-            <a href="anotacoes.html" class="botao-encerrar-sessao">Contas e Vencimentos</a>
+            <a href="anotacoes.html" class="botao-encerrar-sessao">Lembretes de Pagamento</a>
             <a href="extrato.html" class="botao-encerrar-sessao">Ver Extrato Completo</a>
             <button class="botao-encerrar-sessao" id="botao-sair">Encerrar Sessão</button>
             <div class="creditos-menu">Desenvolvido por <strong>Philipe Emanuel</strong></div>
@@ -166,6 +166,7 @@
                 <div class="campo" id="campo-parcelas-wrapper" hidden>
                     <label for="campo-parcelas">Número de parcelas</label>
                     <input type="number" id="campo-parcelas" min="2" max="48" step="1" placeholder="Ex: 5">
+                    <p class="preview-parcela" id="preview-parcela" hidden></p>
                 </div>
 
                 <div class="campo" id="campo-categoria-wrapper">

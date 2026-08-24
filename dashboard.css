@@ -441,6 +441,13 @@ body {
     margin-left: 6px;
 }
 
+.preview-parcela {
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+}
+
 .cartao-grafico {
     background-color: var(--surface);
     border: 1px solid var(--borda);

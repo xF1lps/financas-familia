@@ -87,6 +87,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const campoValor = document.getElementById("campo-valor");
     const campoParcelasWrapper = document.getElementById("campo-parcelas-wrapper");
     const campoParcelas = document.getElementById("campo-parcelas");
+    const previewParcela = document.getElementById("preview-parcela");
     const campoCategoriaWrapper = document.getElementById("campo-categoria-wrapper");
     const campoCategoria = document.getElementById("campo-categoria");
     const botaoExcluirCategoria = document.getElementById("botao-excluir-categoria");
@@ -393,6 +394,7 @@ document.addEventListener("DOMContentLoaded", function () {
         campoFixo.disabled = false;
         campoParcelado.checked = false;
         campoParcelado.disabled = false;
+        previewParcela.hidden = true;
 
         perguntaEscolha.textContent = primeiroNome
             ? `${primeiroNome}, deseja registrar um:`
@@ -500,7 +502,33 @@ document.addEventListener("DOMContentLoaded", function () {
         campoParcelasWrapper.hidden = !parcelando;
         campoParcelas.required = parcelando;
         rotuloValor.textContent = parcelando ? "Valor total da compra" : "Valor";
+        atualizarPreviewParcela();
     }
+
+    // Mostra "= 6x de R$ 8,33" em tempo real, assim que a pessoa digita o
+    // valor total e o número de parcelas — evita confusão tipo "coloquei 50
+    // e apareceu 8,33" (o app está certo, só faltava deixar isso visível antes)
+    function atualizarPreviewParcela() {
+        if (!campoParcelado.checked) {
+            previewParcela.hidden = true;
+            return;
+        }
+
+        const total = parseFloat(campoValor.value);
+        const numeroParcelas = parseInt(campoParcelas.value, 10);
+
+        if (!total || total <= 0 || !numeroParcelas || numeroParcelas < 2) {
+            previewParcela.hidden = true;
+            return;
+        }
+
+        const valorPorParcela = total / numeroParcelas;
+        previewParcela.textContent = `= ${numeroParcelas}x de ${formatarMoeda(valorPorParcela)}`;
+        previewParcela.hidden = false;
+    }
+
+    campoValor.addEventListener("input", atualizarPreviewParcela);
+    campoParcelas.addEventListener("input", atualizarPreviewParcela);
 
     // ==========================================================================
     // 8. MENSAGENS DE AVISO
@@ -824,20 +852,20 @@ document.addEventListener("DOMContentLoaded", function () {
     function escutarSalarioDoMes() {
         if (pararDeEscutarSalario) pararDeEscutarSalario();
 
-        const hoje = new Date();
-        const inicioMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-        const inicioProximoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
-
+        // Só um filtro aqui de propósito (categoria) — evita precisar de
+        // índice composto no Firestore, igual já resolvemos no Saldo Guardado.
+        // O "é desse mês?" é conferido do lado do app, depois que os dados chegam.
         const referencia = collection(db, "usuarios", uidAtual, "lancamentos");
-        const consulta = query(
-            referencia,
-            where("data", ">=", Timestamp.fromDate(inicioMesAtual)),
-            where("data", "<", Timestamp.fromDate(inicioProximoMes)),
-            where("categoria", "==", "Salário")
-        );
+        const consulta = query(referencia, where("categoria", "==", "Salário"));
 
         pararDeEscutarSalario = onSnapshot(consulta, (snapshot) => {
-            bannerSalario.hidden = !snapshot.empty;
+            const hoje = new Date();
+            const jaTemSalarioEsteMes = snapshot.docs.some((documento) => {
+                const dataDoDocumento = documento.data().data.toDate();
+                return dataDoDocumento.getFullYear() === hoje.getFullYear()
+                    && dataDoDocumento.getMonth() === hoje.getMonth();
+            });
+            bannerSalario.hidden = jaTemSalarioEsteMes;
         });
 
         perguntaSalario.textContent = primeiroNome

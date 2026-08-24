@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Contas e Vencimentos — Finanças</title>
+    <title>Lembretes de Pagamento — Finanças</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,31 +25,55 @@
     <div class="app-shell">
         <header class="topo-app">
             <a href="dashboard.html" class="link-voltar" aria-label="Voltar">←</a>
-            <div class="marca-topo">Contas e Vencimentos</div>
-            <span style="width:40px"></span>
+            <div class="marca-topo">Lembretes de Pagamento</div>
+            <button type="button" class="link-voltar" id="botao-alternar-selecao" style="font-size:13px;">Selecionar</button>
         </header>
 
         <main class="conteudo-principal">
+
+            <!-- Navegação entre meses — cada lembrete fica guardado no mês em
+                 que foi criado, nada some sozinho quando o mês vira -->
+            <section class="navegacao-mes">
+                <button class="seta-ano" id="ano-anterior" aria-label="Ano anterior">«</button>
+                <button class="seta-mes" id="mes-anterior" aria-label="Mês anterior">‹</button>
+                <h2 class="rotulo-mes" id="rotulo-mes">—</h2>
+                <button class="seta-mes" id="mes-proximo" aria-label="Próximo mês">›</button>
+                <button class="seta-ano" id="ano-proximo" aria-label="Próximo ano">»</button>
+            </section>
+
+            <!-- Saldo automático: saldo real do mês (ganhos - gastos) menos a
+                 soma dos lembretes desse mês. Só leitura, nunca editável. -->
+            <section class="cartao-saldo-principal">
+                <span class="rotulo-cartao">Saldo do mês, já descontando os lembretes</span>
+                <span class="valor-saldo-grande" id="saldo-com-lembretes">R$ 0,00</span>
+            </section>
+
             <p class="texto-explicativo-guardado">
-                Contas que se repetem todo mês. Marca como paga quando quitar — no mês seguinte ela volta a aparecer como pendente sozinha.
+                Anote pagamentos que quer lembrar de fazer. Cada um é descontado só aqui, nesse cálculo — o saldo real da tela inicial continua intacto até você realmente lançar o gasto.
             </p>
 
             <ul class="lista-contas" id="lista-anotacoes"></ul>
-            <p class="lista-vazia" id="anotacoes-vazio" hidden>Nenhuma conta cadastrada ainda.</p>
+            <p class="lista-vazia" id="anotacoes-vazio" hidden>Nenhum lembrete nesse mês ainda.</p>
 
-            <button type="button" class="botao-retirar" id="botao-abrir-nova-anotacao" style="margin-top:20px;">+ Adicionar conta</button>
+            <!-- Barra de ações da seleção múltipla — só aparece no modo seleção -->
+            <div class="barra-selecao" id="barra-selecao" hidden>
+                <span id="contador-selecao">0 selecionados</span>
+                <button type="button" class="botao-retirar" id="botao-excluir-selecionados" style="border-color: var(--error); color: var(--error);">Excluir selecionados</button>
+            </div>
+
+            <button type="button" class="botao-retirar" id="botao-abrir-nova-anotacao" style="margin-top:20px;">+ Adicionar lembrete</button>
         </main>
     </div>
 
     <div class="fundo-modal" id="fundo-modal-anotacao">
         <div class="modal-lancamento">
             <div class="cabecalho-modal">
-                <h3>Nova conta</h3>
+                <h3>Novo lembrete</h3>
                 <button class="botao-fechar-modal" id="botao-fechar-anotacao" aria-label="Fechar">✕</button>
             </div>
 
             <div class="campo">
-                <label for="campo-nome-conta">Nome da conta</label>
+                <label for="campo-nome-conta">Nome</label>
                 <input type="text" id="campo-nome-conta" placeholder="Ex: Internet">
             </div>
 
@@ -69,7 +93,7 @@
             <div class="mensagem-aviso" id="mensagem-aviso-anotacao" role="alert"></div>
 
             <button type="button" class="botao-enviar" id="botao-salvar-anotacao">
-                <span class="texto-botao">Salvar conta</span>
+                <span class="texto-botao">Salvar lembrete</span>
                 <span class="spinner-botao" hidden></span>
             </button>
         </div>
