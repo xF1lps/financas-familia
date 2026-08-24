@@ -268,6 +268,26 @@ body#pagina-login {
     color: var(--sucesso);
 }
 
+/* Checkbox com texto ao lado (usado em várias telas: onboarding, gasto fixo/
+   parcelado, "sem vencimento" nas anotações, etc.) — fica aqui no arquivo
+   compartilhado pra funcionar em qualquer página, não só onde foi criado */
+.item-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14.5px;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.item-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
 /* Campos do formulário */
 .campo {
     margin-bottom: 18px;
@@ -281,7 +301,7 @@ body#pagina-login {
     margin-bottom: 7px;
 }
 
-.campo input,
+.campo input:not([type="checkbox"]),
 .campo select {
     width: 100%;
     background-color: var(--surface-alta);
