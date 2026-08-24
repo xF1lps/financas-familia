@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="variaveis.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="anotacoes.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0A0A0A">
     <link rel="apple-touch-icon" href="icone-192.png">
@@ -50,9 +51,9 @@
                 <span class="ponto-marca"></span>
                 <span class="email-usuario" id="email-usuario"></span>
             </div>
-            <a href="extrato.html" class="botao-encerrar-sessao">Ver Extrato Completo</a>
             <a href="guardado.html" class="botao-encerrar-sessao">Saldo Guardado</a>
             <a href="anotacoes.html" class="botao-encerrar-sessao">Contas e Vencimentos</a>
+            <a href="extrato.html" class="botao-encerrar-sessao">Ver Extrato Completo</a>
             <button class="botao-encerrar-sessao" id="botao-sair">Encerrar Sessão</button>
             <div class="creditos-menu">Desenvolvido por <strong>Philipe Emanuel</strong></div>
         </aside>
@@ -109,6 +110,17 @@
                     <ul class="legenda-grafico" id="legenda-grafico"></ul>
                 </div>
                 <p class="grafico-vazio" id="grafico-vazio" hidden>Nenhum gasto registrado neste mês ainda.</p>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- PAGAMENTOS PENDENTES — gastos fixos e parcelas do mês, que só
+                 viram gasto de verdade (e só descontam do saldo) quando
+                 marcados como pagos -->
+            <!-- ========================================================== -->
+            <section class="secao-pendencias">
+                <h3 class="titulo-secao">Pagamentos Pendentes</h3>
+                <ul class="lista-contas" id="lista-pendencias"></ul>
+                <p class="lista-vazia" id="pendencias-vazio" hidden>Nenhum gasto fixo ou parcela pra esse mês.</p>
             </section>
 
             <section class="lista-lancamentos-secao">
@@ -186,7 +198,7 @@
                 <div class="opcoes-especiais-gasto" id="opcoes-especiais-gasto">
                     <label class="item-checkbox">
                         <input type="checkbox" id="campo-fixo">
-                        Gasto fixo (repete nos próximos 12 meses)
+                        Gasto fixo (cria pendência nos próximos 12 meses)
                     </label>
                     <label class="item-checkbox">
                         <input type="checkbox" id="campo-parcelado">

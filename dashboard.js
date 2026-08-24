@@ -21,8 +21,11 @@ const NOMES_MESES = [
 // Mostramos só os últimos N lançamentos na tela inicial — o resto fica no Extrato Completo
 const LIMITE_ITENS_LISTA_INICIAL = 4;
 
-// Navegação do calendário travada até dezembro do ano corrente
-const LIMITE_NAVEGACAO = new Date(new Date().getFullYear(), 11, 1);
+// Navegação do calendário: do início do ano atual até dezembro de 2028 —
+// dá espaço suficiente pra parcelamentos longos (até 48x) não ficarem sem
+// mês pra "morar"
+const LIMITE_NAVEGACAO_SUPERIOR = new Date(2028, 11, 1);
+const LIMITE_NAVEGACAO_INFERIOR = new Date(new Date().getFullYear(), 0, 1);
 
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -50,6 +53,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const listaLancamentos = document.getElementById("lista-lancamentos");
     const listaVazia = document.getElementById("lista-vazia");
+    const listaPendencias = document.getElementById("lista-pendencias");
+    const pendenciasVazio = document.getElementById("pendencias-vazio");
     const linkExtrato = document.getElementById("link-extrato");
 
     const fundoModalConselho = document.getElementById("fundo-modal-conselho");
@@ -142,6 +147,7 @@ document.addEventListener("DOMContentLoaded", function () {
         await carregarCategoriasCustomizadas();
         atualizarRotuloMes();
         escutarLancamentosDoMes();
+        escutarPendenciasDoMes();
         verificarConselhoMensal(perfil);
         verificarAniversario(perfil);
 
@@ -185,25 +191,31 @@ document.addEventListener("DOMContentLoaded", function () {
     function mudarPeriodo(mesesParaSomar) {
         const novaData = new Date(mesSelecionado.getFullYear(), mesSelecionado.getMonth() + mesesParaSomar, 1);
 
-        // Não deixa passar de dezembro do ano corrente
-        if (novaData > LIMITE_NAVEGACAO) {
-            mesSelecionado = new Date(LIMITE_NAVEGACAO);
+        if (novaData > LIMITE_NAVEGACAO_SUPERIOR) {
+            mesSelecionado = new Date(LIMITE_NAVEGACAO_SUPERIOR);
+        } else if (novaData < LIMITE_NAVEGACAO_INFERIOR) {
+            mesSelecionado = new Date(LIMITE_NAVEGACAO_INFERIOR);
         } else {
             mesSelecionado = novaData;
         }
 
         atualizarRotuloMes();
         escutarLancamentosDoMes();
+        escutarPendenciasDoMes();
     }
 
     function atualizarRotuloMes() {
         rotuloMes.textContent = `${NOMES_MESES[mesSelecionado.getMonth()]} ${mesSelecionado.getFullYear()}`;
 
-        const jaNoLimite = mesSelecionado.getFullYear() === LIMITE_NAVEGACAO.getFullYear()
-            && mesSelecionado.getMonth() === LIMITE_NAVEGACAO.getMonth();
+        const noLimiteSuperior = mesSelecionado.getFullYear() === LIMITE_NAVEGACAO_SUPERIOR.getFullYear()
+            && mesSelecionado.getMonth() === LIMITE_NAVEGACAO_SUPERIOR.getMonth();
+        const noLimiteInferior = mesSelecionado.getFullYear() === LIMITE_NAVEGACAO_INFERIOR.getFullYear()
+            && mesSelecionado.getMonth() === LIMITE_NAVEGACAO_INFERIOR.getMonth();
 
-        mesProximoBtn.disabled = jaNoLimite;
-        anoProximoBtn.disabled = jaNoLimite;
+        mesProximoBtn.disabled = noLimiteSuperior;
+        anoProximoBtn.disabled = noLimiteSuperior;
+        mesAnteriorBtn.disabled = noLimiteInferior;
+        anoAnteriorBtn.disabled = noLimiteInferior;
 
         // O link "Ver extrato completo" da tela inicial sempre abre já filtrado
         // no mês que está sendo visto no momento (o extrato em si permite trocar
@@ -627,27 +639,35 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    // Cria uma "pendência" por parcela — nenhuma delas mexe no saldo ainda.
+    // Só quando a pessoa marcar como paga (lá na seção "Pagamentos Pendentes")
+    // é que vira um lançamento de verdade.
     async function salvarParcelado(valorTotal, numeroParcelas, categoria, descricaoBase, dataInicial) {
         const valorParcela = Math.floor((valorTotal / numeroParcelas) * 100) / 100;
         const diferencaCentavos = Math.round((valorTotal - valorParcela * numeroParcelas) * 100) / 100;
         const grupoId = `parc_${Date.now()}`;
 
         for (let indice = 0; indice < numeroParcelas; indice++) {
-            const dataDaParcela = new Date(
-                dataInicial.getFullYear(), dataInicial.getMonth() + indice, dataInicial.getDate(),
-                dataInicial.getHours(), dataInicial.getMinutes()
-            );
+            const anoDestino = dataInicial.getFullYear();
+            const mesDestino = dataInicial.getMonth() + indice;
+            const ultimoDiaDoMes = new Date(anoDestino, mesDestino + 1, 0).getDate();
+            const diaFinal = Math.min(dataInicial.getDate(), ultimoDiaDoMes);
+            const mesReferencia = `${new Date(anoDestino, mesDestino, 1).getFullYear()}-${String(new Date(anoDestino, mesDestino, 1).getMonth() + 1).padStart(2, "0")}`;
+
             const ehUltima = indice === numeroParcelas - 1;
             const valorDessaParcela = ehUltima ? valorParcela + diferencaCentavos : valorParcela;
-            const descricaoFinal = `${descricaoBase || categoria} (Parcela ${indice + 1}/${numeroParcelas})`;
 
-            await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
-                tipo: "gasto",
+            await addDoc(collection(db, "usuarios", uidAtual, "pendencias"), {
                 valor: valorDessaParcela,
                 categoria,
-                descricao: descricaoFinal,
-                data: Timestamp.fromDate(dataDaParcela),
-                grupoParcelamentoId: grupoId,
+                descricao: descricaoBase || categoria,
+                diaDoMes: diaFinal,
+                mesReferencia,
+                origem: "parcelado",
+                numeroParcela: indice + 1,
+                totalParcelas: numeroParcelas,
+                grupoId,
+                pago: false,
                 criadoEm: serverTimestamp()
             });
         }
@@ -662,20 +682,116 @@ document.addEventListener("DOMContentLoaded", function () {
             const mesDestino = dataInicial.getMonth() + indice;
             const ultimoDiaDoMes = new Date(anoDestino, mesDestino + 1, 0).getDate();
             const diaFinal = Math.min(diaOriginal, ultimoDiaDoMes);
-            const dataDoMes = new Date(anoDestino, mesDestino, diaFinal, dataInicial.getHours(), dataInicial.getMinutes());
+            const mesReferencia = `${new Date(anoDestino, mesDestino, 1).getFullYear()}-${String(new Date(anoDestino, mesDestino, 1).getMonth() + 1).padStart(2, "0")}`;
 
-            await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
-                tipo: "gasto",
+            await addDoc(collection(db, "usuarios", uidAtual, "pendencias"), {
                 valor,
                 categoria,
                 descricao: descricaoBase || categoria,
-                data: Timestamp.fromDate(dataDoMes),
-                fixo: true,
-                grupoFixoId: grupoId,
+                diaDoMes: diaFinal,
+                mesReferencia,
+                origem: "fixo",
+                grupoId,
+                pago: false,
                 criadoEm: serverTimestamp()
             });
         }
     }
+
+    // ==========================================================================
+    // PAGAMENTOS PENDENTES — gastos fixos e parcelas do mês selecionado.
+    // Ficam separados dos lançamentos normais até serem marcados como pagos.
+    // ==========================================================================
+    let pararDeEscutarPendencias = null;
+
+    function escutarPendenciasDoMes() {
+        if (pararDeEscutarPendencias) pararDeEscutarPendencias();
+
+        const mesReferencia = `${mesSelecionado.getFullYear()}-${String(mesSelecionado.getMonth() + 1).padStart(2, "0")}`;
+        const referencia = collection(db, "usuarios", uidAtual, "pendencias");
+        const consulta = query(referencia, where("mesReferencia", "==", mesReferencia));
+
+        pararDeEscutarPendencias = onSnapshot(consulta, (snapshot) => {
+            const documentosOrdenados = [...snapshot.docs].sort((a, b) => a.data().diaDoMes - b.data().diaDoMes);
+            renderizarPendencias(documentosOrdenados);
+        });
+    }
+
+    function renderizarPendencias(documentos) {
+        listaPendencias.innerHTML = "";
+        pendenciasVazio.hidden = documentos.length > 0;
+
+        documentos.forEach((documento) => {
+            const dados = documento.data();
+            const badgeParcela = dados.origem === "parcelado"
+                ? `<span class="badge-parcela">Parcela ${dados.numeroParcela}/${dados.totalParcelas}</span>`
+                : `<span class="badge-parcela">Fixo</span>`;
+
+            const item = document.createElement("li");
+            item.className = "item-conta";
+            item.innerHTML = `
+                <div class="info-conta">
+                    <div class="nome-conta">${dados.descricao}${badgeParcela}</div>
+                    <div class="meta-conta">${dados.categoria} · Dia ${dados.diaDoMes}</div>
+                </div>
+                <span class="valor-conta">${formatarMoeda(dados.valor)}</span>
+                <div class="status-conta">
+                    <button class="botao-marcar-pago ${dados.pago ? "pago" : ""}" data-id="${documento.id}" data-pago="${dados.pago}">
+                        ${dados.pago ? "✓ Paga" : "Marcar como paga"}
+                    </button>
+                    <button class="botao-excluir-conta" data-id="${documento.id}" aria-label="Excluir pendência">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            listaPendencias.appendChild(item);
+        });
+    }
+
+    listaPendencias.addEventListener("click", async (evento) => {
+        const botaoExcluir = evento.target.closest(".botao-excluir-conta");
+        if (botaoExcluir) {
+            const confirmou = window.confirm("Tem certeza de que deseja excluir essa pendência?");
+            if (!confirmou) return;
+            await deleteDoc(doc(db, "usuarios", uidAtual, "pendencias", botaoExcluir.dataset.id));
+            return;
+        }
+
+        const botaoPago = evento.target.closest(".botao-marcar-pago");
+        if (!botaoPago) return;
+
+        const jaEstavaPago = botaoPago.dataset.pago === "true";
+        const idPendencia = botaoPago.dataset.id;
+        const referenciaPendencia = doc(db, "usuarios", uidAtual, "pendencias", idPendencia);
+
+        if (jaEstavaPago) {
+            // Desmarcar: volta a ser só pendência, sem afetar o saldo
+            await updateDoc(referenciaPendencia, { pago: false });
+            return;
+        }
+
+        // Marcar como paga: busca os dados da própria pendência pra criar o
+        // lançamento de verdade (é isso que desconta do saldo e aparece no extrato)
+        const snapshotPendencia = await getDoc(referenciaPendencia);
+        if (!snapshotPendencia.exists()) return;
+        const dadosPendencia = snapshotPendencia.data();
+
+        const [ano, mes] = dadosPendencia.mesReferencia.split("-").map(Number);
+        const dataDoPagamento = new Date(ano, mes - 1, dadosPendencia.diaDoMes, 12, 0);
+
+        await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
+            tipo: "gasto",
+            valor: dadosPendencia.valor,
+            categoria: dadosPendencia.categoria,
+            descricao: dadosPendencia.descricao,
+            data: Timestamp.fromDate(dataDoPagamento),
+            criadoEm: serverTimestamp()
+        });
+
+        await updateDoc(referenciaPendencia, { pago: true });
+    });
 
     // ==========================================================================
     // 10. ESCUTAR OS LANÇAMENTOS DO MÊS SELECIONADO, EM TEMPO REAL

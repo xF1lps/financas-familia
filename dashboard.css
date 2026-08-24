@@ -426,6 +426,21 @@ body {
     margin-bottom: 32px;
 }
 
+.secao-pendencias {
+    margin-bottom: 32px;
+}
+
+.badge-parcela {
+    display: inline-block;
+    background-color: rgba(217, 119, 87, 0.15);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-left: 6px;
+}
+
 .cartao-grafico {
     background-color: var(--surface);
     border: 1px solid var(--borda);
