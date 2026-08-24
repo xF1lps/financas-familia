@@ -426,6 +426,105 @@ body {
     margin-bottom: 32px;
 }
 
+/* ==========================================================================
+   BANNER DE SALÁRIO
+   ========================================================================== */
+.banner-salario {
+    background: linear-gradient(160deg, var(--surface) 0%, #1c1410 100%);
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(217, 119, 87, 0.12);
+}
+
+.cabecalho-banner-salario {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.icone-banner-salario {
+    font-size: 26px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.texto-banner-salario {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.texto-banner-salario strong {
+    font-family: var(--fonte-titulo);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.35;
+}
+
+.texto-banner-salario span {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.acao-banner-salario {
+    display: flex;
+    gap: 10px;
+}
+
+.acao-banner-salario .valor-wrapper {
+    flex: 1;
+}
+
+.acao-banner-salario .botao-enviar {
+    width: auto;
+    flex-shrink: 0;
+    padding: 0 24px;
+    margin: 0;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .banner-salario {
+        padding: 18px;
+        border-radius: 12px;
+    }
+
+    .cabecalho-banner-salario {
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .icone-banner-salario {
+        font-size: 22px;
+    }
+
+    .texto-banner-salario strong {
+        font-size: 15.5px;
+    }
+
+    .texto-banner-salario span {
+        font-size: 12.5px;
+    }
+
+    .acao-banner-salario {
+        flex-direction: column;
+    }
+
+    .acao-banner-salario .valor-wrapper {
+        width: 100%;
+    }
+
+    .acao-banner-salario .botao-enviar {
+        width: 100%;
+        padding: 14px 0;
+        font-size: 14.5px;
+    }
+}
+
 .secao-pendencias {
     margin-bottom: 32px;
 }

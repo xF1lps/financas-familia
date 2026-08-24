@@ -62,12 +62,15 @@
 
             <!-- Banner do salário mensal — aparece se tiver salário padrão configurado
                  e ainda não tiver sido confirmado nesse mês -->
-            <section class="banner-diarista" id="banner-salario" hidden>
-                <div class="texto-banner-diarista">
-                    <strong id="pergunta-salario">Já recebeu seu salário deste mês?</strong>
-                    <span>Confirma o valor pra já entrar no seu saldo.</span>
+            <section class="banner-salario" id="banner-salario" hidden>
+                <div class="cabecalho-banner-salario">
+                    <span class="icone-banner-salario">💰</span>
+                    <div class="texto-banner-salario">
+                        <strong id="pergunta-salario">Já recebeu seu salário deste mês?</strong>
+                        <span>Confirma o valor pra já entrar no seu saldo.</span>
+                    </div>
                 </div>
-                <div class="acao-banner-diarista">
+                <div class="acao-banner-salario">
                     <div class="valor-wrapper">
                         <span class="prefixo-valor">R$</span>
                         <input type="number" id="valor-salario-banner" step="0.01" min="0" placeholder="0,00">

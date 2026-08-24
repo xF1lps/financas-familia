@@ -24,23 +24,24 @@ document.addEventListener("DOMContentLoaded", function () {
     const anotacoesVazio = document.getElementById("anotacoes-vazio");
 
     const botaoAlternarSelecao = document.getElementById("botao-alternar-selecao");
-    const barraSelecao = document.getElementById("barra-selecao");
-    const contadorSelecao = document.getElementById("contador-selecao");
     const botaoExcluirSelecionados = document.getElementById("botao-excluir-selecionados");
 
     const botaoAbrirNovaAnotacao = document.getElementById("botao-abrir-nova-anotacao");
     const botaoFecharAnotacao = document.getElementById("botao-fechar-anotacao");
     const fundoModalAnotacao = document.getElementById("fundo-modal-anotacao");
+    const tituloModalAnotacao = document.getElementById("titulo-modal-anotacao");
     const campoNomeConta = document.getElementById("campo-nome-conta");
     const campoValorConta = document.getElementById("campo-valor-conta");
     const campoDiaVencimento = document.getElementById("campo-dia-vencimento");
     const mensagemAvisoAnotacao = document.getElementById("mensagem-aviso-anotacao");
     const botaoSalvarAnotacao = document.getElementById("botao-salvar-anotacao");
+    const textoBotaoSalvarAnotacao = botaoSalvarAnotacao.querySelector(".texto-botao");
     const spinnerAnotacao = botaoSalvarAnotacao.querySelector(".spinner-botao");
 
     let uidAtual = null;
     let mesSelecionado = new Date();
     let modoSelecao = false;
+    let idEmEdicao = null; // null = criando novo | string = editando esse lembrete
     let ultimoTotalAnotacoes = 0; // usado pra recalcular o saldo quando o saldo real mudar
 
     onAuthStateChanged(auth, (usuario) => {
@@ -161,6 +162,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const item = document.createElement("li");
             item.className = "item-conta";
             item.dataset.id = documento.id;
+            item._dadosOriginais = dados;
             item.innerHTML = `
                 ${modoSelecao ? `<input type="checkbox" class="checkbox-selecao" data-id="${documento.id}">` : ""}
                 <div class="info-conta">
@@ -189,15 +191,14 @@ document.addEventListener("DOMContentLoaded", function () {
     function entrarNoModoSelecao() {
         modoSelecao = true;
         botaoAlternarSelecao.textContent = "Cancelar";
-        barraSelecao.hidden = false;
-        atualizarContadorSelecao();
+        botaoExcluirSelecionados.hidden = false;
         escutarAnotacoesDoMes(); // re-renderiza já com os checkboxes
     }
 
     function sairDoModoSelecao() {
         modoSelecao = false;
         botaoAlternarSelecao.textContent = "Selecionar";
-        barraSelecao.hidden = true;
+        botaoExcluirSelecionados.hidden = true;
     }
 
     botaoAlternarSelecao.addEventListener("click", () => {
@@ -209,20 +210,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    function atualizarContadorSelecao() {
-        const marcados = listaAnotacoes.querySelectorAll(".checkbox-selecao:checked").length;
-        contadorSelecao.textContent = `${marcados} selecionado${marcados === 1 ? "" : "s"}`;
-    }
-
-    listaAnotacoes.addEventListener("change", (evento) => {
-        if (evento.target.classList.contains("checkbox-selecao")) {
-            atualizarContadorSelecao();
-        }
-    });
-
     botaoExcluirSelecionados.addEventListener("click", async () => {
         const marcados = [...listaAnotacoes.querySelectorAll(".checkbox-selecao:checked")];
-        if (marcados.length === 0) return;
+        if (marcados.length === 0) {
+            window.alert("Marca pelo menos um lembrete pra excluir.");
+            return;
+        }
 
         const confirmou = window.confirm(`Tem certeza de que deseja excluir ${marcados.length} lembrete(s)?`);
         if (!confirmou) return;
@@ -254,16 +247,37 @@ document.addEventListener("DOMContentLoaded", function () {
             const confirmou = window.confirm("Tem certeza de que deseja excluir esse lembrete?");
             if (!confirmou) return;
             await deleteDoc(doc(db, "usuarios", uidAtual, "anotacoes", botaoExcluir.dataset.id));
+            return;
+        }
+
+        // Clique em qualquer outro ponto do item (fora dos botões) abre a edição
+        const item = evento.target.closest(".item-conta");
+        if (item && item._dadosOriginais) {
+            abrirModalEdicao(item.dataset.id, item._dadosOriginais);
         }
     });
 
     // ==========================================================================
-    // NOVO LEMBRETE
+    // NOVO LEMBRETE / EDITAR LEMBRETE (mesmo modal, muda o comportamento)
     // ==========================================================================
     function abrirModalAnotacao() {
+        idEmEdicao = null;
+        tituloModalAnotacao.textContent = "Novo lembrete";
+        textoBotaoSalvarAnotacao.textContent = "Salvar lembrete";
         campoNomeConta.value = "";
         campoValorConta.value = "";
         campoDiaVencimento.value = "";
+        mensagemAvisoAnotacao.classList.remove("visivel");
+        fundoModalAnotacao.classList.add("aberto");
+    }
+
+    function abrirModalEdicao(id, dados) {
+        idEmEdicao = id;
+        tituloModalAnotacao.textContent = "Editar lembrete";
+        textoBotaoSalvarAnotacao.textContent = "Salvar alterações";
+        campoNomeConta.value = dados.nome;
+        campoValorConta.value = dados.valor;
+        campoDiaVencimento.value = dados.diaVencimento;
         mensagemAvisoAnotacao.classList.remove("visivel");
         fundoModalAnotacao.classList.add("aberto");
     }
@@ -303,16 +317,26 @@ document.addEventListener("DOMContentLoaded", function () {
         botaoSalvarAnotacao.disabled = true;
         spinnerAnotacao.hidden = false;
 
-        // O lembrete fica salvo no mês que está sendo visto no momento —
-        // assim dá pra criar lembretes futuros navegando pra frente antes de salvar
-        await addDoc(collection(db, "usuarios", uidAtual, "anotacoes"), {
-            nome,
-            valor,
-            diaVencimento: dia,
-            mesReferencia: chaveDoMesSelecionado(),
-            pago: false,
-            criadoEm: serverTimestamp()
-        });
+        if (idEmEdicao) {
+            // Editando um lembrete já existente — só atualiza os campos,
+            // sem mexer no mês, no "pago" ou na data de criação
+            await updateDoc(doc(db, "usuarios", uidAtual, "anotacoes", idEmEdicao), {
+                nome,
+                valor,
+                diaVencimento: dia
+            });
+        } else {
+            // O lembrete fica salvo no mês que está sendo visto no momento —
+            // assim dá pra criar lembretes futuros navegando pra frente antes de salvar
+            await addDoc(collection(db, "usuarios", uidAtual, "anotacoes"), {
+                nome,
+                valor,
+                diaVencimento: dia,
+                mesReferencia: chaveDoMesSelecionado(),
+                pago: false,
+                criadoEm: serverTimestamp()
+            });
+        }
 
         botaoSalvarAnotacao.disabled = false;
         spinnerAnotacao.hidden = true;
