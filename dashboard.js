@@ -1151,6 +1151,17 @@ document.addEventListener("DOMContentLoaded", function () {
     listaLancamentos.addEventListener("click", async (evento) => {
         const botaoExcluir = evento.target.closest(".botao-excluir");
         if (botaoExcluir) {
+            const itemPai = botaoExcluir.closest(".item-lancamento");
+            const dadosDoItem = itemPai ? itemPai._dadosOriginais : null;
+
+            // Itens do cofrinho ("Guardar Dinheiro") só podem ser excluídos
+            // pela tela "Saldo Guardado" — excluir daqui, sem querer, deixava
+            // o total do cofrinho desbalanceado (podendo até ficar negativo)
+            if (dadosDoItem && dadosDoItem.categoria === "Guardar Dinheiro") {
+                window.alert("Esse lançamento faz parte do seu Saldo Guardado. Pra excluir ou ajustar, vai em Saldo Guardado no menu lateral.");
+                return;
+            }
+
             const confirmou = window.confirm("Tem certeza de que deseja excluir este lançamento?");
             if (!confirmou) return;
             await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", botaoExcluir.dataset.id));
@@ -1159,6 +1170,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const item = evento.target.closest(".item-lancamento");
         if (item && item._dadosOriginais) {
+            if (item._dadosOriginais.categoria === "Guardar Dinheiro") {
+                window.alert("Esse lançamento faz parte do seu Saldo Guardado e não pode ser editado por aqui.");
+                return;
+            }
             abrirModalEdicao(item.dataset.id, item._dadosOriginais);
         }
     });

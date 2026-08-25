@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="meta-lancamento">${dados.categoria} · ${dataFormatada} às ${horaFormatada}</div>
                 </div>
                 <span class="valor-lancamento">${sinal} ${formatarMoeda(dados.valor)}</span>
-                <button class="botao-excluir" data-id="${documento.id}" aria-label="Excluir lançamento">
+                <button class="botao-excluir" data-id="${documento.id}" data-categoria="${dados.categoria}" aria-label="Excluir lançamento">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/>
                     </svg>
@@ -117,6 +117,14 @@ document.addEventListener("DOMContentLoaded", function () {
     listaExtrato.addEventListener("click", async (evento) => {
         const botao = evento.target.closest(".botao-excluir");
         if (!botao) return;
+
+        // Itens do cofrinho ("Guardar Dinheiro") só podem ser excluídos pela
+        // tela "Saldo Guardado" — evita desbalancear o total guardado
+        if (botao.dataset.categoria === "Guardar Dinheiro") {
+            window.alert("Esse lançamento faz parte do seu Saldo Guardado. Pra excluir ou ajustar, vai em Saldo Guardado no menu lateral.");
+            return;
+        }
+
         const confirmou = window.confirm("Tem certeza de que deseja excluir este lançamento?");
         if (!confirmou) return;
         await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", botao.dataset.id));
