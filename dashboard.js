@@ -58,6 +58,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const fundoModalEditarCategoria = document.getElementById("fundo-modal-editar-categoria");
     const botaoFecharEditarCategoria = document.getElementById("botao-fechar-editar-categoria");
     const campoNovoNomeCategoria = document.getElementById("campo-novo-nome-categoria");
+    const campoLimiteCategoriaWrapper = document.getElementById("campo-limite-categoria-wrapper");
     const campoLimiteCategoria = document.getElementById("campo-limite-categoria");
     const mensagemAvisoEditarCategoria = document.getElementById("mensagem-aviso-editar-categoria");
     const botaoSalvarEditarCategoria = document.getElementById("botao-salvar-editar-categoria");
@@ -408,6 +409,10 @@ document.addEventListener("DOMContentLoaded", function () {
         campoLimiteCategoria.value = mapaOrcamentos[categoriaEmEdicaoNomeAntigo] || "";
         mensagemAvisoEditarCategoria.classList.remove("visivel");
 
+        // "Limite mensal" só faz sentido pra categorias de Gasto — não existe
+        // "limite" pra Ganho/Extra, então o campo nem aparece nesse caso
+        campoLimiteCategoriaWrapper.hidden = tipoSelecionado !== "gasto";
+
         fundoModalEditarCategoria.classList.add("aberto");
     });
 
@@ -458,23 +463,25 @@ document.addEventListener("DOMContentLoaded", function () {
                     await lote.commit();
                 }
 
-                // 3) "Move" o orçamento configurado (Firestore não deixa
-                // renomear o ID de um documento, então apaga o antigo e cria
-                // um novo com o nome atualizado)
-                if (mapaOrcamentos[categoriaEmEdicaoNomeAntigo] !== undefined) {
+                // 3) "Move" o orçamento configurado (só existe pro lado Gasto —
+                // Firestore não deixa renomear o ID de um documento, então
+                // apaga o antigo e cria um novo com o nome atualizado)
+                if (tipoSelecionado === "gasto" && mapaOrcamentos[categoriaEmEdicaoNomeAntigo] !== undefined) {
                     await deleteDoc(doc(db, "usuarios", uidAtual, "orcamentos", categoriaEmEdicaoNomeAntigo)).catch(() => {});
                     delete mapaOrcamentos[categoriaEmEdicaoNomeAntigo];
                 }
             }
 
-            // Salva (ou remove) o limite mensal, já usando o nome final
-            const referenciaOrcamento = doc(db, "usuarios", uidAtual, "orcamentos", novoNome);
-            if (!novoLimite || novoLimite <= 0) {
-                await deleteDoc(referenciaOrcamento).catch(() => {});
-                delete mapaOrcamentos[novoNome];
-            } else {
-                await setDoc(referenciaOrcamento, { categoria: novoNome, limite: novoLimite });
-                mapaOrcamentos[novoNome] = novoLimite;
+            // Salva (ou remove) o limite mensal, só faz sentido pro lado Gasto
+            if (tipoSelecionado === "gasto") {
+                const referenciaOrcamento = doc(db, "usuarios", uidAtual, "orcamentos", novoNome);
+                if (!novoLimite || novoLimite <= 0) {
+                    await deleteDoc(referenciaOrcamento).catch(() => {});
+                    delete mapaOrcamentos[novoNome];
+                } else {
+                    await setDoc(referenciaOrcamento, { categoria: novoNome, limite: novoLimite });
+                    mapaOrcamentos[novoNome] = novoLimite;
+                }
             }
 
             // Atualiza o estado local, sem precisar recarregar a página inteira
@@ -926,9 +933,21 @@ document.addEventListener("DOMContentLoaded", function () {
     listaPendencias.addEventListener("click", async (evento) => {
         const botaoExcluir = evento.target.closest(".botao-excluir-conta");
         if (botaoExcluir) {
-            const confirmou = window.confirm("Tem certeza de que deseja excluir essa pendência?");
+            const confirmou = window.confirm("Tem certeza de que deseja excluir essa pendência? Se ela já estava marcada como paga, o lançamento correspondente também será removido do saldo.");
             if (!confirmou) return;
-            await deleteDoc(doc(db, "usuarios", uidAtual, "pendencias", botaoExcluir.dataset.id));
+
+            const referenciaPendenciaExcluir = doc(db, "usuarios", uidAtual, "pendencias", botaoExcluir.dataset.id);
+            const snapshotExcluir = await getDoc(referenciaPendenciaExcluir);
+            const dadosExcluir = snapshotExcluir.exists() ? snapshotExcluir.data() : null;
+
+            // Se a pendência já tinha sido marcada como paga, o lançamento
+            // real vinculado a ela também precisa ser apagado — senão ele
+            // fica órfão, do mesmo jeito que o bug de desmarcar que já corrigimos
+            if (dadosExcluir && dadosExcluir.lancamentoId) {
+                await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", dadosExcluir.lancamentoId)).catch(() => {});
+            }
+
+            await deleteDoc(referenciaPendenciaExcluir);
             return;
         }
 
@@ -940,10 +959,25 @@ document.addEventListener("DOMContentLoaded", function () {
         const referenciaPendencia = doc(db, "usuarios", uidAtual, "pendencias", idPendencia);
 
         if (jaEstavaPago) {
-            // Desmarcar: volta a ser só pendência, sem afetar o saldo
-            await updateDoc(referenciaPendencia, { pago: false });
+            const confirmouDesmarcar = window.confirm("Tem certeza de que deseja desmarcar esse pagamento? O lançamento correspondente vai ser removido do saldo e do extrato.");
+            if (!confirmouDesmarcar) return;
+
+            // Desmarcar precisa apagar o lançamento real que foi criado quando
+            // marcou como paga — senão ele fica "preso" pra sempre, afetando o
+            // saldo mesmo depois de desmarcado (e duplicando se marcar de novo)
+            const snapshotAtual = await getDoc(referenciaPendencia);
+            const dadosAtuais = snapshotAtual.exists() ? snapshotAtual.data() : null;
+
+            if (dadosAtuais && dadosAtuais.lancamentoId) {
+                await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", dadosAtuais.lancamentoId)).catch(() => {});
+            }
+
+            await updateDoc(referenciaPendencia, { pago: false, lancamentoId: null });
             return;
         }
+
+        const confirmouPagar = window.confirm("Tem certeza de que esse pagamento já foi feito? Isso vai descontar o valor do seu saldo.");
+        if (!confirmouPagar) return;
 
         // Marcar como paga: busca os dados da própria pendência pra criar o
         // lançamento de verdade (é isso que desconta do saldo e aparece no extrato)
@@ -959,7 +993,7 @@ document.addEventListener("DOMContentLoaded", function () {
             agoraDoPagamento.getSeconds(), agoraDoPagamento.getMilliseconds()
         );
 
-        await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
+        const novoLancamento = await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
             tipo: "gasto",
             valor: dadosPendencia.valor,
             categoria: dadosPendencia.categoria,
@@ -968,7 +1002,7 @@ document.addEventListener("DOMContentLoaded", function () {
             criadoEm: serverTimestamp()
         });
 
-        await updateDoc(referenciaPendencia, { pago: true });
+        await updateDoc(referenciaPendencia, { pago: true, lancamentoId: novoLancamento.id });
     });
 
     // ==========================================================================
