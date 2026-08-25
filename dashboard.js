@@ -102,6 +102,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const botaoEditarCategoria = document.getElementById("botao-editar-categoria");
     const campoNovaCategoriaWrapper = document.getElementById("campo-nova-categoria-wrapper");
     const campoNovaCategoria = document.getElementById("campo-nova-categoria");
+    const campoDescricaoWrapper = document.getElementById("campo-descricao-wrapper");
     const campoDescricao = document.getElementById("campo-descricao");
     const campoData = document.getElementById("campo-data");
     const atalhoHoje = document.getElementById("atalho-hoje");
@@ -378,6 +379,11 @@ document.addEventListener("DOMContentLoaded", function () {
     function popularSelectMetas() {
         campoCategoria.innerHTML = "";
 
+        const opcaoSemMeta = document.createElement("option");
+        opcaoSemMeta.value = "__sem_meta__";
+        opcaoSemMeta.textContent = "Sem meta específica";
+        campoCategoria.appendChild(opcaoSemMeta);
+
         metasCustomizadas.forEach((meta) => {
             const opcao = document.createElement("option");
             opcao.value = meta.nome;
@@ -639,6 +645,9 @@ document.addEventListener("DOMContentLoaded", function () {
             popularSelectCategorias();
         }
 
+        campoDescricaoWrapper.hidden = modoGuardar;
+        campoDescricao.required = false;
+
         const hoje = new Date();
         campoData.value = formatarDataParaCampo(hoje);
         campoValor.focus();
@@ -783,11 +792,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     return;
                 }
                 metaFinal = novaMeta;
+            } else if (categoriaFinal === "__sem_meta__") {
+                metaFinal = null;
             } else {
-                if (!categoriaFinal) {
-                    mostrarAviso("Escolhe uma meta (ou cria uma nova).");
-                    return;
-                }
                 metaFinal = categoriaFinal;
             }
             categoriaFinal = "Guardar Dinheiro";
