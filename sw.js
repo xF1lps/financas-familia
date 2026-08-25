@@ -6,7 +6,7 @@
 // dos arquivos principais.
 // ==========================================================================
 
-const NOME_DO_CACHE = "financas-familia-v24";
+const NOME_DO_CACHE = "financas-familia-v26";
 
 // Arquivos essenciais, guardados localmente no primeiro acesso
 const ARQUIVOS_ESSENCIAIS = [
@@ -47,11 +47,18 @@ self.addEventListener("activate", (evento) => {
     self.clients.claim();
 });
 
-// Estratégia: tenta buscar na internet primeiro; se falhar (sem sinal), usa a cópia local
+// Estratégia: tenta buscar na internet primeiro; se falhar (sem sinal), usa a cópia local.
+// Importante: só faz isso pros arquivos do PRÓPRIO site (mesma origem). Qualquer
+// requisição pro Firebase/Google (login, banco de dados, renovação de sessão, etc.)
+// passa direto, sem o Service Worker interferir — evita bugs de login "resetando"
+// sozinho, que é o que acontecia quando a gente tentava listar domínio por domínio
+// e acabava esquecendo algum (como aconteceu com o securetoken.googleapis.com,
+// que é usado pra renovar a sessão por trás dos panos).
 self.addEventListener("fetch", (evento) => {
-    // Não mexe em chamadas pro Firebase — essas sempre precisam de internet de verdade
-    if (evento.request.url.includes("firestore.googleapis.com") || evento.request.url.includes("identitytoolkit")) {
-        return;
+    const urlDaRequisicao = new URL(evento.request.url);
+
+    if (urlDaRequisicao.origin !== self.location.origin) {
+        return; // não é do nosso site — deixa passar direto, sem mexer
     }
 
     evento.respondWith(

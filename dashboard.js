@@ -547,13 +547,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Junta a data escolhida no calendário com o horário real de agora —
     // resolve dois pontos ao mesmo tempo: mostra a que horas a pessoa
-    // realmente registrou aquilo, e faz lançamentos do mesmo dia ficarem
-    // ordenados certinho (do mais recente pro mais antigo)
+    // realmente registrou aquilo, e faz lançamentos ficarem ordenados
+    // certinho (do mais recente pro mais antigo), com precisão até o
+    // milissegundo — sem isso, dois lançamentos no mesmo minuto "empatavam"
+    // e a ordem entre eles ficava meio aleatória
     function construirDataComHorarioReal(dataDoCampo) {
         const agora = new Date();
-        const horas = String(agora.getHours()).padStart(2, "0");
-        const minutos = String(agora.getMinutes()).padStart(2, "0");
-        return new Date(`${dataDoCampo}T${horas}:${minutos}:00`);
+        const [ano, mes, dia] = dataDoCampo.split("-").map(Number);
+        return new Date(ano, mes - 1, dia, agora.getHours(), agora.getMinutes(), agora.getSeconds(), agora.getMilliseconds());
     }
 
     // ==========================================================================
@@ -804,7 +805,12 @@ document.addEventListener("DOMContentLoaded", function () {
         const dadosPendencia = snapshotPendencia.data();
 
         const [ano, mes] = dadosPendencia.mesReferencia.split("-").map(Number);
-        const dataDoPagamento = new Date(ano, mes - 1, dadosPendencia.diaDoMes, 12, 0);
+        const agoraDoPagamento = new Date();
+        const dataDoPagamento = new Date(
+            ano, mes - 1, dadosPendencia.diaDoMes,
+            agoraDoPagamento.getHours(), agoraDoPagamento.getMinutes(),
+            agoraDoPagamento.getSeconds(), agoraDoPagamento.getMilliseconds()
+        );
 
         await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
             tipo: "gasto",

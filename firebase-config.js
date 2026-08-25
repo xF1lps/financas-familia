@@ -7,7 +7,7 @@
 // Importa as ferramentas do Firebase direto de um CDN do Google — não precisa
 // instalar nada (nada de "npm install"), o navegador baixa isso sozinho.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Essas são as "chaves de identidade" do SEU projeto Firebase — foram geradas
@@ -32,3 +32,8 @@ const app = initializeApp(firebaseConfig);
 //   lançamentos financeiros vão ser salvos nas próximas telas
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Garante, de forma explícita, que o login fica salvo no aparelho entre uma
+// abertura e outra do app (em vez de depender do comportamento padrão
+// "implícito" do Firebase, que em alguns navegadores/PWAs pode variar)
+setPersistence(auth, browserLocalPersistence);
