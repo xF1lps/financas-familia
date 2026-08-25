@@ -6,7 +6,7 @@
 // dos arquivos principais.
 // ==========================================================================
 
-const NOME_DO_CACHE = "financas-familia-v26";
+const NOME_DO_CACHE = "financas-familia-v27";
 
 // Arquivos essenciais, guardados localmente no primeiro acesso
 const ARQUIVOS_ESSENCIAIS = [
@@ -62,6 +62,6 @@ self.addEventListener("fetch", (evento) => {
     }
 
     evento.respondWith(
-        fetch(evento.request).catch(() => caches.match(evento.request))
+        fetch(evento.request, { cache: "no-store" }).catch(() => caches.match(evento.request))
     );
 });
