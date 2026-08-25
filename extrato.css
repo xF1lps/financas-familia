@@ -22,6 +22,35 @@
     margin-bottom: 20px;
 }
 
+.cartao-meta {
+    background-color: var(--surface);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.cabecalho-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.link-editar-meta {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-family: var(--fonte-corpo);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+}
+
+.link-editar-meta:hover {
+    text-decoration: underline;
+}
+
 .botao-retirar {
     margin-top: 14px;
     align-self: flex-start;

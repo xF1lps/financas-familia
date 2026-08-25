@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="dashboard.css">
     <link rel="stylesheet" href="extrato.css">
+    <link rel="stylesheet" href="anotacoes.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0A0A0A">
     <link rel="icon" href="favicon-32.png" sizes="32x32">
@@ -33,6 +34,21 @@
                 <span class="valor-saldo-grande" id="total-guardado">R$ 0,00</span>
                 <button type="button" class="botao-retirar" id="botao-abrir-retirada">Retirar Dinheiro</button>
             </section>
+
+            <!-- META DE ECONOMIA — só aparece o conteúdo depois de carregar,
+                 pra decidir entre "sem meta" ou "com meta e barra" -->
+            <section class="cartao-meta" id="cartao-meta" hidden>
+                <div class="cabecalho-meta">
+                    <span class="rotulo-cartao" id="descricao-meta">Sua meta</span>
+                    <button type="button" class="link-editar-meta" id="botao-editar-meta">Editar</button>
+                </div>
+                <div class="barra-orcamento-wrapper" style="height: 10px; margin-top: 10px;">
+                    <div class="barra-orcamento-preenchida" id="barra-meta" style="width: 0%;"></div>
+                </div>
+                <div class="texto-barra-orcamento" id="texto-progresso-meta" style="margin-top: 8px; font-size: 12.5px;"></div>
+            </section>
+
+            <button type="button" class="botao-retirar" id="botao-definir-meta" hidden style="margin-bottom: 20px;">+ Definir meta de economia</button>
 
             <p class="texto-explicativo-guardado">
                 Esse valor não entra no saldo da tela inicial — é dinheiro que você separou de propósito, guardado à parte.
@@ -62,6 +78,32 @@
                 <span class="texto-botao">Confirmar retirada</span>
                 <span class="spinner-botao" hidden></span>
             </button>
+        </div>
+    </div>
+
+    <div class="fundo-modal" id="fundo-modal-meta">
+        <div class="modal-lancamento">
+            <div class="cabecalho-modal">
+                <h3>Meta de economia</h3>
+                <button class="botao-fechar-modal" id="botao-fechar-meta" aria-label="Fechar">✕</button>
+            </div>
+            <div class="campo">
+                <label for="campo-descricao-meta">Nome da meta <span class="dica-campo">(opcional)</span></label>
+                <input type="text" id="campo-descricao-meta" placeholder="Ex: Viagem de fim de ano">
+            </div>
+            <div class="campo">
+                <label for="campo-valor-meta">Valor da meta</label>
+                <div class="valor-wrapper">
+                    <span class="prefixo-valor">R$</span>
+                    <input type="number" id="campo-valor-meta" step="0.01" min="0" placeholder="0,00">
+                </div>
+            </div>
+            <div class="mensagem-aviso" id="mensagem-aviso-meta" role="alert"></div>
+            <button type="button" class="botao-enviar" id="botao-salvar-meta">
+                <span class="texto-botao">Salvar meta</span>
+                <span class="spinner-botao" hidden></span>
+            </button>
+            <button type="button" class="link-editar-meta" id="botao-remover-meta" style="display:block; margin: 14px auto 0; color: var(--error);" hidden>Remover meta</button>
         </div>
     </div>
 

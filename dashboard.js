@@ -907,12 +907,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 ? `<span class="badge-parcela">Parcela ${dados.numeroParcela}/${dados.totalParcelas}</span>`
                 : `<span class="badge-parcela">Fixo</span>`;
 
+            // Só o Gasto Fixo tem a opção de cancelar tudo de uma vez — parcela
+            // tem quantidade combinada (fim natural), fixo é indefinido, então
+            // faz mais sentido oferecer esse "desligar" aqui
+            const linkCancelar = dados.origem === "fixo" && dados.grupoId
+                ? `<button class="link-cancelar-recorrencia" data-grupo="${dados.grupoId}">Cancelar recorrência</button>`
+                : "";
+
             const item = document.createElement("li");
             item.className = "item-conta";
             item.innerHTML = `
                 <div class="info-conta">
                     <div class="nome-conta">${dados.descricao}${badgeParcela}</div>
                     <div class="meta-conta">${dados.categoria} · Dia ${dados.diaDoMes}</div>
+                    ${linkCancelar}
                 </div>
                 <span class="valor-conta">${formatarMoeda(dados.valor)}</span>
                 <div class="status-conta">
@@ -931,6 +939,22 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     listaPendencias.addEventListener("click", async (evento) => {
+        const botaoCancelarRecorrencia = evento.target.closest(".link-cancelar-recorrencia");
+        if (botaoCancelarRecorrencia) {
+            const confirmou = window.confirm("Isso cancela as próximas ocorrências desse gasto fixo. As que já foram marcadas como pagas continuam no seu histórico normalmente. Tem certeza?");
+            if (!confirmou) return;
+
+            const grupoId = botaoCancelarRecorrencia.dataset.grupo;
+            const referenciaPendencias = collection(db, "usuarios", uidAtual, "pendencias");
+            const consultaGrupo = query(referenciaPendencias, where("grupoId", "==", grupoId), where("pago", "==", false));
+            const pendenciasDoGrupo = await getDocs(consultaGrupo);
+
+            for (const documento of pendenciasDoGrupo.docs) {
+                await deleteDoc(documento.ref);
+            }
+            return;
+        }
+
         const botaoExcluir = evento.target.closest(".botao-excluir-conta");
         if (botaoExcluir) {
             const confirmou = window.confirm("Tem certeza de que deseja excluir essa pendência? Se ela já estava marcada como paga, o lançamento correspondente também será removido do saldo.");
