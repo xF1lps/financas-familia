@@ -381,6 +381,29 @@ select:focus {
     color: var(--accent);
 }
 
+.link-esqueci-senha {
+    display: block;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--fonte-corpo);
+    font-size: 12.5px;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-top: 8px;
+    padding: 0;
+    text-align: right;
+    width: 100%;
+}
+
+.link-esqueci-senha:hover {
+    color: var(--accent);
+}
+
+.link-esqueci-senha[hidden] {
+    display: none;
+}
+
 /* Botão principal de envio */
 .botao-enviar {
     width: 100%;

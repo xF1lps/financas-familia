@@ -157,6 +157,9 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     botaoSair.addEventListener("click", async () => {
+        const confirmou = window.confirm("Tem certeza de que deseja encerrar a sessão?");
+        if (!confirmou) return;
+
         await signOut(auth);
         window.location.href = "index.html";
     });

@@ -3,7 +3,8 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     onAuthStateChanged,
-    signOut
+    signOut,
+    sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -22,6 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const mensagemAviso = document.getElementById("mensagem-aviso");
     const botaoOlho = document.getElementById("botao-olho");
     const botaoOlhoConfirmar = document.getElementById("botao-olho-confirmar");
+    const linkEsqueciSenha = document.getElementById("link-esqueci-senha");
     const telaCarregamento = document.getElementById("tela-carregamento");
 
     // ==========================================================================
@@ -66,6 +68,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         textoBotao.textContent = ehCadastro ? "Criar conta" : "Entrar";
         campoSenha.placeholder = ehCadastro ? "Crie uma senha (mín. 6 caracteres)" : "Sua senha";
+        linkEsqueciSenha.hidden = ehCadastro;
     }
 
     abaEntrar.addEventListener("click", () => mudarPara("entrar"));
@@ -106,6 +109,30 @@ document.addEventListener("DOMContentLoaded", function () {
         };
         return mensagens[codigoErro] || "Algo deu errado. Tenta novamente em instantes.";
     }
+
+    // ==========================================================================
+    // ESQUECI MINHA SENHA — envia um e-mail com link pra redefinir
+    // ==========================================================================
+    linkEsqueciSenha.addEventListener("click", async () => {
+        esconderAviso();
+
+        const email = campoEmail.value.trim();
+        if (!email) {
+            mostrarAviso("Digita seu e-mail no campo acima primeiro, depois clica em \"Esqueci minha senha\".");
+            return;
+        }
+
+        linkEsqueciSenha.disabled = true;
+
+        try {
+            await sendPasswordResetEmail(auth, email);
+            mostrarAviso("E-mail de redefinição enviado! Confere sua caixa de entrada (e a pasta de spam).", "sucesso");
+        } catch (erro) {
+            mostrarAviso(traduzirErro(erro.code));
+        } finally {
+            linkEsqueciSenha.disabled = false;
+        }
+    });
 
     function definirCarregando(carregando) {
         botaoEnviar.disabled = carregando;
