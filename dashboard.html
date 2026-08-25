@@ -41,6 +41,8 @@
                 <span class="ponto-marca"></span>
                 <span class="email-usuario" id="email-usuario"></span>
             </div>
+            <a href="perfil.html" class="botao-encerrar-sessao">Editar Perfil</a>
+            <a href="orcamento.html" class="botao-encerrar-sessao">Orçamento por Categoria</a>
             <a href="guardado.html" class="botao-encerrar-sessao">Saldo Guardado</a>
             <a href="anotacoes.html" class="botao-encerrar-sessao">Lembretes de Pagamento</a>
             <a href="extrato.html" class="botao-encerrar-sessao">Ver Extrato Completo</a>
@@ -81,6 +83,8 @@
                 <span class="rotulo-cartao">Saldo do mês</span>
                 <span class="valor-saldo-grande" id="total-saldo">R$ 0,00</span>
             </section>
+
+            <p class="comparacao-mes-anterior" id="comparacao-mes-anterior" hidden></p>
 
             <section class="cartoes-resumo">
                 <div class="cartao-resumo cartao-ganho">
@@ -187,6 +191,10 @@
                 <div class="campo">
                     <label for="campo-data">Data</label>
                     <input type="date" id="campo-data" required>
+                    <div class="atalhos-data">
+                        <button type="button" class="botao-atalho-data" id="atalho-hoje">Hoje</button>
+                        <button type="button" class="botao-atalho-data" id="atalho-ontem">Ontem</button>
+                    </div>
                 </div>
 
                 <div class="opcoes-especiais-gasto" id="opcoes-especiais-gasto">

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Editar Perfil — Finanças</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="variaveis.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="extrato.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0A0A0A">
+    <link rel="apple-touch-icon" href="icone-192.png">
+    <link rel="icon" href="favicon-32.png" sizes="32x32">
+    <link rel="icon" href="favicon-16.png" sizes="16x16">
+</head>
+<body>
+
+    <div class="app-shell">
+        <header class="topo-app">
+            <a href="dashboard.html" class="link-voltar" aria-label="Voltar">←</a>
+            <div class="marca-topo">Editar Perfil</div>
+            <span style="width:24px"></span>
+        </header>
+
+        <main class="conteudo-principal">
+
+            <div class="mensagem-aviso" id="mensagem-aviso"></div>
+
+            <form id="formulario-perfil">
+                <div class="campo">
+                    <label for="campo-nome">Nome</label>
+                    <input type="text" id="campo-nome" placeholder="Seu nome" required>
+                </div>
+
+                <div class="campo">
+                    <label for="campo-nascimento">Data de nascimento</label>
+                    <input type="date" id="campo-nascimento" required>
+                </div>
+
+                <div class="campo">
+                    <label for="campo-salario">Salário padrão <span class="dica-campo">(pode ser 0 se não tiver um valor fixo)</span></label>
+                    <div class="valor-wrapper">
+                        <span class="prefixo-valor">R$</span>
+                        <input type="number" id="campo-salario" step="0.01" min="0" placeholder="0,00" required>
+                    </div>
+                </div>
+
+                <div class="campo">
+                    <label>Profissão <span class="dica-campo">(pode marcar até 2)</span></label>
+                    <div class="lista-checkbox" id="lista-profissoes">
+                        <label class="item-checkbox"><input type="checkbox" value="Diarista"> Diarista</label>
+                        <label class="item-checkbox"><input type="checkbox" value="CLT / Assalariado(a)"> CLT / Assalariado(a)</label>
+                        <label class="item-checkbox"><input type="checkbox" value="Estudante"> Estudante</label>
+                        <label class="item-checkbox"><input type="checkbox" value="Outros"> Outros</label>
+                    </div>
+                </div>
+
+                <button type="submit" class="botao-enviar" id="botao-salvar-perfil">
+                    <span class="texto-botao">Salvar alterações</span>
+                    <span class="spinner-botao" hidden></span>
+                </button>
+            </form>
+
+            <hr style="border: 0; border-top: 1px solid var(--borda); margin: 28px 0;">
+
+            <div class="campo">
+                <label>E-mail da conta</label>
+                <p class="texto-explicativo-guardado" id="email-atual" style="margin:0;"></p>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="perfil.js"></script>
+</body>
+</html>

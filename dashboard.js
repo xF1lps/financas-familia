@@ -94,6 +94,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const campoNovaCategoria = document.getElementById("campo-nova-categoria");
     const campoDescricao = document.getElementById("campo-descricao");
     const campoData = document.getElementById("campo-data");
+    const atalhoHoje = document.getElementById("atalho-hoje");
+    const atalhoOntem = document.getElementById("atalho-ontem");
     const opcoesEspeciaisGasto = document.getElementById("opcoes-especiais-gasto");
     const campoFixo = document.getElementById("campo-fixo");
     const campoParcelado = document.getElementById("campo-parcelado");
@@ -112,6 +114,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let pararDeEscutar = null;
     let pararDeEscutarSalario = null;
     let salarioPadrao = 0;
+    let mapaOrcamentos = {}; // {categoria: limite}
     let primeiroNome = "";
     let idEmEdicao = null; // null = criando novo | string = editando esse lançamento
     let saldoAtualDoMes = 0; // usado pra impedir guardar mais do que o saldo permite
@@ -145,9 +148,11 @@ document.addEventListener("DOMContentLoaded", function () {
         botaoEscolhaExtra.textContent = ehDiarista ? "Ganho" : "Extra";
 
         await carregarCategoriasCustomizadas();
+        await carregarOrcamentos();
         atualizarRotuloMes();
         escutarLancamentosDoMes();
         escutarPendenciasDoMes();
+        buscarGastosMesAnterior();
         verificarConselhoMensal(perfil);
         verificarAniversario(perfil);
 
@@ -203,6 +208,7 @@ document.addEventListener("DOMContentLoaded", function () {
         atualizarRotuloMes();
         escutarLancamentosDoMes();
         escutarPendenciasDoMes();
+        buscarGastosMesAnterior();
     }
 
     function atualizarRotuloMes() {
@@ -299,6 +305,16 @@ document.addEventListener("DOMContentLoaded", function () {
             if (dados.tipo === "gasto" || dados.tipo === "ganho") {
                 categoriasCustomizadas[dados.tipo].push({ nome: dados.nome, id: documento.id });
             }
+        });
+    }
+
+    async function carregarOrcamentos() {
+        const referencia = collection(db, "usuarios", uidAtual, "orcamentos");
+        const resultado = await getDocs(referencia);
+
+        mapaOrcamentos = {};
+        resultado.forEach((documento) => {
+            mapaOrcamentos[documento.id] = documento.data().limite;
         });
     }
 
@@ -426,7 +442,7 @@ document.addEventListener("DOMContentLoaded", function () {
         popularSelectCategorias(dados.categoria);
         campoValor.value = dados.valor;
         campoDescricao.value = dados.descricao || "";
-        campoData.value = dados.data.toDate().toISOString().split("T")[0];
+        campoData.value = formatarDataParaCampo(dados.data.toDate());
         campoNovaCategoriaWrapper.hidden = true;
 
         fundoModal.classList.add("aberto");
@@ -467,9 +483,30 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!modoGuardar) popularSelectCategorias();
 
         const hoje = new Date();
-        campoData.value = hoje.toISOString().split("T")[0];
+        campoData.value = formatarDataParaCampo(hoje);
         campoValor.focus();
     }
+
+    // Formata pro padrão AAAA-MM-DD que o input[type=date] espera, usando o
+    // horário LOCAL do aparelho (evita o bug clássico de virar o dia errado
+    // perto da meia-noite, que aconteceria usando toISOString diretamente
+    // em fusos negativos como o do Brasil)
+    function formatarDataParaCampo(data) {
+        const ano = data.getFullYear();
+        const mes = String(data.getMonth() + 1).padStart(2, "0");
+        const dia = String(data.getDate()).padStart(2, "0");
+        return `${ano}-${mes}-${dia}`;
+    }
+
+    atalhoHoje.addEventListener("click", () => {
+        campoData.value = formatarDataParaCampo(new Date());
+    });
+
+    atalhoOntem.addEventListener("click", () => {
+        const ontem = new Date();
+        ontem.setDate(ontem.getDate() - 1);
+        campoData.value = formatarDataParaCampo(ontem);
+    });
 
     botoesEscolha.forEach((botao) => {
         botao.addEventListener("click", () => irParaFormulario(botao.dataset.tipo));
@@ -828,6 +865,65 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ==========================================================================
+    // COMPARAÇÃO COM O MÊS ANTERIOR
+    // ==========================================================================
+    const comparacaoMesAnteriorEl = document.getElementById("comparacao-mes-anterior");
+    let gastosMesAnterior = null;
+    let totalGastosAtual = 0;
+
+    async function buscarGastosMesAnterior() {
+        const anoAnterior = mesSelecionado.getMonth() === 0 ? mesSelecionado.getFullYear() - 1 : mesSelecionado.getFullYear();
+        const mesAnteriorIndice = mesSelecionado.getMonth() === 0 ? 11 : mesSelecionado.getMonth() - 1;
+
+        const inicio = new Date(anoAnterior, mesAnteriorIndice, 1);
+        const fim = new Date(anoAnterior, mesAnteriorIndice + 1, 1);
+
+        const referencia = collection(db, "usuarios", uidAtual, "lancamentos");
+        const consulta = query(
+            referencia,
+            where("data", ">=", Timestamp.fromDate(inicio)),
+            where("data", "<", Timestamp.fromDate(fim))
+        );
+
+        const resultado = await getDocs(consulta);
+        let total = 0;
+        resultado.forEach((documento) => {
+            const dados = documento.data();
+            if (dados.categoria === "Guardar Dinheiro") {
+                if (dados.valor > 0) total += dados.valor;
+                return;
+            }
+            if (dados.tipo === "gasto") total += dados.valor;
+        });
+
+        gastosMesAnterior = total;
+        atualizarComparacaoMesAnterior();
+    }
+
+    // Recalcula toda vez que os totais do mês atual mudam (chamada lá de
+    // dentro de calcularTotais), pra manter a comparação sempre correta
+    function atualizarComparacaoMesAnterior() {
+        if (gastosMesAnterior === null || gastosMesAnterior <= 0 || totalGastosAtual <= 0) {
+            comparacaoMesAnteriorEl.hidden = true;
+            return;
+        }
+
+        const diferencaPercentual = ((totalGastosAtual - gastosMesAnterior) / gastosMesAnterior) * 100;
+        const arredondado = Math.round(Math.abs(diferencaPercentual));
+
+        if (arredondado === 0) {
+            comparacaoMesAnteriorEl.hidden = true;
+            return;
+        }
+
+        const gastouMais = diferencaPercentual > 0;
+        comparacaoMesAnteriorEl.hidden = false;
+        comparacaoMesAnteriorEl.classList.toggle("gastou-mais", gastouMais);
+        comparacaoMesAnteriorEl.classList.toggle("gastou-menos", !gastouMais);
+        comparacaoMesAnteriorEl.innerHTML = `<span class="seta-comparacao">${gastouMais ? "▲" : "▼"}</span> Você gastou ${arredondado}% ${gastouMais ? "a mais" : "a menos"} que no mês anterior`;
+    }
+
+    // ==========================================================================
     // 10. ESCUTAR OS LANÇAMENTOS DO MÊS SELECIONADO, EM TEMPO REAL
     // ==========================================================================
     function escutarLancamentosDoMes() {
@@ -993,6 +1089,9 @@ document.addEventListener("DOMContentLoaded", function () {
         totalGastosEl.textContent = formatarMoeda(totalGastos);
         saldoAtualDoMes = totalGanhos - totalGastos;
         totalSaldoEl.textContent = formatarMoeda(saldoAtualDoMes);
+
+        totalGastosAtual = totalGastos;
+        atualizarComparacaoMesAnterior();
     }
 
     // ==========================================================================
@@ -1067,10 +1166,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const itemLegenda = document.createElement("li");
             itemLegenda.className = "item-legenda";
+
+            const limiteConfigurado = mapaOrcamentos[item.nome];
+            let barraHtml = "";
+            if (limiteConfigurado && limiteConfigurado > 0) {
+                const percentualUsado = Math.min(100, (item.valor / limiteConfigurado) * 100);
+                const classeCor = percentualUsado >= 100 ? "estourou" : (percentualUsado >= 80 ? "aviso" : "");
+                barraHtml = `
+                    <div class="barra-orcamento-item">
+                        <div class="barra-orcamento-wrapper">
+                            <div class="barra-orcamento-preenchida ${classeCor}" style="width: ${percentualUsado}%"></div>
+                        </div>
+                        <div class="texto-barra-orcamento">${formatarMoeda(item.valor)} de ${formatarMoeda(limiteConfigurado)}</div>
+                    </div>
+                `;
+            }
+
             itemLegenda.innerHTML = `
                 <span class="ponto-legenda" style="background-color: ${cor}"></span>
                 <span class="nome-legenda">${item.nome}</span>
                 <span class="percentual-legenda">${Math.round(percentual * 100)}%</span>
+                ${barraHtml}
             `;
             legendaGrafico.appendChild(itemLegenda);
         });

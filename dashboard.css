@@ -529,6 +529,53 @@ body {
     margin-bottom: 32px;
 }
 
+.comparacao-mes-anterior {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin: -6px 0 20px 0;
+}
+
+.comparacao-mes-anterior[hidden] {
+    display: none;
+}
+
+.atalhos-data {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.botao-atalho-data {
+    background: none;
+    border: 1px solid var(--borda);
+    color: var(--text-muted);
+    font-family: var(--fonte-corpo);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.botao-atalho-data:hover,
+.botao-atalho-data.ativo {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.comparacao-mes-anterior .seta-comparacao {
+    font-weight: 700;
+}
+
+.comparacao-mes-anterior.gastou-mais .seta-comparacao {
+    color: var(--gasto-cor);
+}
+
+.comparacao-mes-anterior.gastou-menos .seta-comparacao {
+    color: var(--sucesso);
+}
+
 .badge-parcela {
     display: inline-block;
     background-color: rgba(217, 119, 87, 0.15);
@@ -585,9 +632,15 @@ body {
 
 .item-legenda {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
     font-size: 13px;
+}
+
+.barra-orcamento-item {
+    flex-basis: 100%;
+    margin-left: 17px; /* alinha com o texto, depois do pontinho colorido */
 }
 
 .ponto-legenda {

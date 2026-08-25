@@ -21,6 +21,88 @@
     background-color: var(--surface-alta);
 }
 
+.item-orcamento {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--borda);
+}
+
+.item-orcamento:last-child {
+    border-bottom: none;
+}
+
+.item-orcamento .nome-categoria-orcamento {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.item-orcamento .campo-limite-orcamento {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: var(--surface-alta);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 0 10px;
+    width: 130px;
+    flex-shrink: 0;
+}
+
+.item-orcamento .campo-limite-orcamento span {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.item-orcamento .campo-limite-orcamento input {
+    border: none;
+    background: none;
+    color: var(--text-primary);
+    font-family: var(--fonte-corpo);
+    font-size: 14px;
+    padding: 11px 4px;
+    width: 100%;
+    color-scheme: dark;
+}
+
+.item-orcamento .campo-limite-orcamento input:focus {
+    outline: none;
+}
+
+/* Barrinha de progresso do orçamento, mostrada no dashboard */
+.barra-orcamento-wrapper {
+    margin-top: 6px;
+    background-color: var(--surface-alta);
+    border-radius: 20px;
+    height: 6px;
+    overflow: hidden;
+}
+
+.barra-orcamento-preenchida {
+    height: 100%;
+    border-radius: 20px;
+    background-color: var(--sucesso);
+    transition: width 0.4s ease, background-color 0.4s ease;
+}
+
+.barra-orcamento-preenchida.aviso {
+    background-color: #F5D76E;
+}
+
+.barra-orcamento-preenchida.estourou {
+    background-color: var(--gasto-cor);
+}
+
+.texto-barra-orcamento {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
 .item-conta:last-child {
     border-bottom: none;
 }

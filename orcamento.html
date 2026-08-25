@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Orçamento por Categoria — Finanças</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="variaveis.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="extrato.css">
+    <link rel="stylesheet" href="anotacoes.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0A0A0A">
+    <link rel="apple-touch-icon" href="icone-192.png">
+    <link rel="icon" href="favicon-32.png" sizes="32x32">
+    <link rel="icon" href="favicon-16.png" sizes="16x16">
+</head>
+<body>
+
+    <div class="app-shell">
+        <header class="topo-app">
+            <a href="dashboard.html" class="link-voltar" aria-label="Voltar">←</a>
+            <div class="marca-topo">Orçamento por Categoria</div>
+            <span style="width:24px"></span>
+        </header>
+
+        <main class="conteudo-principal">
+            <p class="texto-explicativo-guardado">
+                Define um limite mensal pra cada categoria de gasto. Deixa em branco pra não ter limite. O app avisa visualmente quando você estiver perto de estourar.
+            </p>
+
+            <ul class="lista-contas" id="lista-orcamentos"></ul>
+            <p class="lista-vazia" id="orcamentos-vazio" hidden>Nenhuma categoria de gasto encontrada ainda — cria algum lançamento primeiro.</p>
+
+            <button type="button" class="botao-enviar" id="botao-salvar-orcamentos" style="margin-top:20px;">
+                <span class="texto-botao">Salvar limites</span>
+                <span class="spinner-botao" hidden></span>
+            </button>
+        </main>
+    </div>
+
+    <script type="module" src="orcamento.js"></script>
+</body>
+</html>
