@@ -1260,11 +1260,12 @@ document.addEventListener("DOMContentLoaded", function () {
             const item = document.createElement("li");
             item.className = `item-lancamento tipo-${dados.tipo}`;
             item.dataset.id = documento.id;
+            const metaTexto = dados.meta ? ` · Meta: ${dados.meta}` : "";
             item.innerHTML = `
                 <span class="ponto-categoria"></span>
                 <div class="info-lancamento">
                     <div class="descricao-lancamento">${dados.descricao || dados.categoria}</div>
-                    <div class="meta-lancamento">${dados.categoria} · ${dataFormatada} às ${horaFormatada}</div>
+                    <div class="meta-lancamento">${dados.categoria}${metaTexto} · ${dataFormatada} às ${horaFormatada}</div>
                 </div>
                 <span class="valor-lancamento">${sinal} ${formatarMoeda(dados.valor)}</span>
                 <button class="botao-excluir" data-id="${documento.id}" aria-label="Excluir lançamento">

@@ -6,6 +6,36 @@
     box-sizing: border-box;
 }
 
+/* ==========================================================================
+   BARRA DE ROLAGEM FINA (Chrome, Safari, Edge — navegadores baseados em
+   Chromium/WebKit). O Firefox não suporta esse tanto de customização, mas
+   pelo menos a cor ele consegue ajustar via "scrollbar-color" mais abaixo.
+   ========================================================================== */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--borda);
+    border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-muted);
+}
+
+/* Firefox: não dá pra deixar fina como no Chrome, mas dá pra pedir uma
+   versão mais discreta ("thin") e combinar as cores com o resto do app */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--borda) transparent;
+}
+
 body {
     margin: 0;
     font-family: var(--fonte-corpo);
