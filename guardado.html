@@ -35,25 +35,23 @@
                 <button type="button" class="botao-retirar" id="botao-abrir-retirada">Retirar Dinheiro</button>
             </section>
 
-            <!-- META DE ECONOMIA — só aparece o conteúdo depois de carregar,
-                 pra decidir entre "sem meta" ou "com meta e barra" -->
-            <section class="cartao-meta" id="cartao-meta" hidden>
-                <div class="cabecalho-meta">
-                    <span class="rotulo-cartao" id="descricao-meta">Sua meta</span>
-                    <button type="button" class="link-editar-meta" id="botao-editar-meta">Editar</button>
-                </div>
-                <div class="barra-orcamento-wrapper" style="height: 10px; margin-top: 10px;">
-                    <div class="barra-orcamento-preenchida" id="barra-meta" style="width: 0%;"></div>
-                </div>
-                <div class="texto-barra-orcamento" id="texto-progresso-meta" style="margin-top: 8px; font-size: 12.5px;"></div>
-            </section>
-
-            <button type="button" class="botao-retirar" id="botao-definir-meta" hidden style="margin-bottom: 20px;">+ Definir meta de economia</button>
-
             <p class="texto-explicativo-guardado">
                 Esse valor não entra no saldo da tela inicial — é dinheiro que você separou de propósito, guardado à parte.
             </p>
 
+            <!-- ========================================================== -->
+            <!-- METAS — uma barra de progresso por meta, criadas direto no
+                 fluxo de "Guardar" (no + da tela inicial) ou aqui mesmo -->
+            <!-- ========================================================== -->
+            <div class="cabecalho-lista-lembretes">
+                <h3 class="titulo-secao" style="margin:0;">Suas metas</h3>
+                <button type="button" class="botao-selecionar-lembretes" id="botao-abrir-nova-meta">+ Nova meta</button>
+            </div>
+
+            <ul class="lista-contas" id="lista-metas"></ul>
+            <p class="lista-vazia" id="metas-vazio" hidden>Nenhuma meta criada ainda.</p>
+
+            <h3 class="titulo-secao" style="margin: 28px 0 14px 0;">Histórico</h3>
             <ul class="lista-lancamentos" id="lista-guardado"></ul>
             <p class="lista-vazia" id="guardado-vazio" hidden>Você ainda não guardou nenhum valor.</p>
         </main>
@@ -84,18 +82,18 @@
     <div class="fundo-modal" id="fundo-modal-meta">
         <div class="modal-lancamento">
             <div class="cabecalho-modal">
-                <h3>Meta de economia</h3>
+                <h3 id="titulo-modal-meta">Nova meta</h3>
                 <button class="botao-fechar-modal" id="botao-fechar-meta" aria-label="Fechar">✕</button>
             </div>
             <div class="campo">
-                <label for="campo-descricao-meta">Nome da meta <span class="dica-campo">(opcional)</span></label>
-                <input type="text" id="campo-descricao-meta" placeholder="Ex: Viagem de fim de ano">
+                <label for="campo-nome-meta">Nome da meta</label>
+                <input type="text" id="campo-nome-meta" placeholder="Ex: Viagem de fim de ano">
             </div>
             <div class="campo">
-                <label for="campo-valor-meta">Valor da meta</label>
+                <label for="campo-valor-meta">Valor da meta <span class="dica-campo">(opcional)</span></label>
                 <div class="valor-wrapper">
                     <span class="prefixo-valor">R$</span>
-                    <input type="number" id="campo-valor-meta" step="0.01" min="0" placeholder="0,00">
+                    <input type="number" id="campo-valor-meta" step="0.01" min="0" placeholder="Sem valor definido ainda">
                 </div>
             </div>
             <div class="mensagem-aviso" id="mensagem-aviso-meta" role="alert"></div>

@@ -95,6 +95,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const campoParcelas = document.getElementById("campo-parcelas");
     const previewParcela = document.getElementById("preview-parcela");
     const campoCategoriaWrapper = document.getElementById("campo-categoria-wrapper");
+    const rotuloCategoria = document.getElementById("rotulo-categoria");
+    const rotuloNovaCategoria = document.getElementById("rotulo-nova-categoria");
     const campoCategoria = document.getElementById("campo-categoria");
     const botaoExcluirCategoria = document.getElementById("botao-excluir-categoria");
     const botaoEditarCategoria = document.getElementById("botao-editar-categoria");
@@ -119,6 +121,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let mesSelecionado = new Date();
     let tipoSelecionado = "gasto";
     let categoriasCustomizadas = { gasto: [], ganho: [] };
+    let metasCustomizadas = []; // [{nome, id}] — usadas só no fluxo de Guardar
     let pararDeEscutar = null;
     let pararDeEscutarSalario = null;
     let salarioPadrao = 0;
@@ -157,6 +160,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         await carregarCategoriasCustomizadas();
         await carregarOrcamentos();
+        await carregarMetas();
         atualizarRotuloMes();
         escutarLancamentosDoMes();
         escutarPendenciasDoMes();
@@ -318,6 +322,16 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    async function carregarMetas() {
+        const referencia = collection(db, "usuarios", uidAtual, "metas");
+        const resultado = await getDocs(referencia);
+
+        metasCustomizadas = [];
+        resultado.forEach((documento) => {
+            metasCustomizadas.push({ nome: documento.data().nome, id: documento.id });
+        });
+    }
+
     function popularSelectCategorias(categoriaAtual) {
         campoCategoria.innerHTML = "";
 
@@ -357,6 +371,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (categoriaAtual) campoCategoria.value = categoriaAtual;
         atualizarBotaoExcluirCategoria();
+    }
+
+    // Reaproveita o mesmo select da categoria, só que com as metas de
+    // "Guardar" no lugar — não tem categorias "fixas" aqui, só as criadas
+    function popularSelectMetas() {
+        campoCategoria.innerHTML = "";
+
+        metasCustomizadas.forEach((meta) => {
+            const opcao = document.createElement("option");
+            opcao.value = meta.nome;
+            opcao.textContent = meta.nome;
+            campoCategoria.appendChild(opcao);
+        });
+
+        const opcaoNova = document.createElement("option");
+        opcaoNova.value = "__nova__";
+        opcaoNova.textContent = "+ Nova meta";
+        campoCategoria.appendChild(opcaoNova);
     }
 
     // Mostra a lixeira e o lápis só quando a categoria selecionada no momento
@@ -586,15 +618,26 @@ document.addEventListener("DOMContentLoaded", function () {
         rotuloValor.textContent = "Valor";
         opcoesEspeciaisGasto.hidden = tipoClicado !== "gasto";
 
-        // No modo Guardar, a categoria já é fixa — não faz sentido escolher.
-        // Importante: precisa desligar o "required" também, senão o navegador
-        // bloqueia o envio do formulário por causa de um campo obrigatório
-        // que está escondido (isso que causava o "bloqueio" depois do 1º uso)
-        campoCategoriaWrapper.hidden = modoGuardar;
-        campoCategoria.required = !modoGuardar;
+        // No modo Guardar, o campo vira "Meta" em vez de "Categoria" —
+        // reaproveita o mesmo select, só troca o rótulo e o conteúdo.
+        // Importante: precisa desligar o "required" quando o campo tá
+        // escondido (isso não acontece mais aqui, mas o padrão se mantém
+        // por segurança), senão o navegador bloqueia o envio do formulário
+        campoCategoriaWrapper.hidden = false;
+        campoCategoria.required = true;
         campoNovaCategoriaWrapper.hidden = true;
+        botaoExcluirCategoria.hidden = true;
+        botaoEditarCategoria.hidden = true;
 
-        if (!modoGuardar) popularSelectCategorias();
+        if (modoGuardar) {
+            rotuloCategoria.textContent = "Meta";
+            rotuloNovaCategoria.textContent = "Nome da nova meta";
+            popularSelectMetas();
+        } else {
+            rotuloCategoria.textContent = "Categoria";
+            rotuloNovaCategoria.textContent = "Nome da nova categoria";
+            popularSelectCategorias();
+        }
 
         const hoje = new Date();
         campoData.value = formatarDataParaCampo(hoje);
@@ -730,7 +773,23 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         let categoriaFinal = campoCategoria.value;
+        let metaFinal = null;
+
         if (modoGuardar) {
+            if (categoriaFinal === "__nova__") {
+                const novaMeta = campoNovaCategoria.value.trim();
+                if (!novaMeta) {
+                    mostrarAviso("Digita o nome da nova meta.");
+                    return;
+                }
+                metaFinal = novaMeta;
+            } else {
+                if (!categoriaFinal) {
+                    mostrarAviso("Escolhe uma meta (ou cria uma nova).");
+                    return;
+                }
+                metaFinal = categoriaFinal;
+            }
             categoriaFinal = "Guardar Dinheiro";
         } else if (categoriaFinal === "__nova__") {
             const nomeNovaCategoria = campoNovaCategoria.value.trim();
@@ -792,6 +851,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 categoriasCustomizadas[tipoSelecionado].push({ nome: categoriaFinal, id: referenciaCategoria.id });
             }
 
+            if (modoGuardar && campoCategoria.value === "__nova__") {
+                const referenciaMeta = await addDoc(collection(db, "usuarios", uidAtual, "metas"), {
+                    nome: metaFinal
+                });
+                metasCustomizadas.push({ nome: metaFinal, id: referenciaMeta.id });
+            }
+
             const dataEscolhida = construirDataComHorarioReal(campoData.value);
             const descricaoBase = campoDescricao.value.trim();
 
@@ -806,7 +872,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     categoria: categoriaFinal,
                     descricao: descricaoBase,
                     data: Timestamp.fromDate(dataEscolhida),
-                    criadoEm: serverTimestamp()
+                    criadoEm: serverTimestamp(),
+                    ...(modoGuardar ? { meta: metaFinal } : {})
                 });
             }
 

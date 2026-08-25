@@ -1,12 +1,29 @@
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, addDoc, deleteDoc, doc, getDoc, setDoc, query, where, onSnapshot, Timestamp, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+    collection, addDoc, updateDoc, deleteDoc, doc, getDocs,
+    query, where, onSnapshot, Timestamp, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 document.addEventListener("DOMContentLoaded", function () {
 
     const totalGuardadoEl = document.getElementById("total-guardado");
     const listaGuardado = document.getElementById("lista-guardado");
     const guardadoVazio = document.getElementById("guardado-vazio");
+
+    const listaMetas = document.getElementById("lista-metas");
+    const metasVazio = document.getElementById("metas-vazio");
+    const botaoAbrirNovaMeta = document.getElementById("botao-abrir-nova-meta");
+
+    const fundoModalMeta = document.getElementById("fundo-modal-meta");
+    const tituloModalMeta = document.getElementById("titulo-modal-meta");
+    const botaoFecharMeta = document.getElementById("botao-fechar-meta");
+    const campoNomeMeta = document.getElementById("campo-nome-meta");
+    const campoValorMeta = document.getElementById("campo-valor-meta");
+    const mensagemAvisoMeta = document.getElementById("mensagem-aviso-meta");
+    const botaoSalvarMeta = document.getElementById("botao-salvar-meta");
+    const spinnerMeta = botaoSalvarMeta.querySelector(".spinner-botao");
+    const botaoRemoverMeta = document.getElementById("botao-remover-meta");
 
     const botaoAbrirRetirada = document.getElementById("botao-abrir-retirada");
     const botaoFecharRetirada = document.getElementById("botao-fechar-retirada");
@@ -19,111 +36,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let uidAtual = null;
     let totalAtual = 0;
-    let metaAtual = null; // { valor, descricao } | null
+    let todosOsDepositos = []; // todos os lançamentos de "Guardar Dinheiro" (pra somar por meta)
+    let metaEmEdicaoId = null;
 
-    const cartaoMeta = document.getElementById("cartao-meta");
-    const descricaoMetaEl = document.getElementById("descricao-meta");
-    const barraMeta = document.getElementById("barra-meta");
-    const textoProgressoMeta = document.getElementById("texto-progresso-meta");
-    const botaoDefinirMeta = document.getElementById("botao-definir-meta");
-    const botaoEditarMeta = document.getElementById("botao-editar-meta");
-    const botaoRemoverMeta = document.getElementById("botao-remover-meta");
-    const fundoModalMeta = document.getElementById("fundo-modal-meta");
-    const botaoFecharMeta = document.getElementById("botao-fechar-meta");
-    const campoDescricaoMeta = document.getElementById("campo-descricao-meta");
-    const campoValorMeta = document.getElementById("campo-valor-meta");
-    const mensagemAvisoMeta = document.getElementById("mensagem-aviso-meta");
-    const botaoSalvarMeta = document.getElementById("botao-salvar-meta");
-    const spinnerMeta = botaoSalvarMeta.querySelector(".spinner-botao");
-
-    onAuthStateChanged(auth, async (usuario) => {
+    onAuthStateChanged(auth, (usuario) => {
         if (!usuario) {
             window.location.href = "index.html";
             return;
         }
         uidAtual = usuario.uid;
-        await carregarMeta();
         escutarGuardado();
+        escutarMetas();
     });
 
-    async function carregarMeta() {
-        const snapshot = await getDoc(doc(db, "usuarios", uidAtual, "configuracoes", "metaEconomia"));
-        metaAtual = snapshot.exists() ? snapshot.data() : null;
-        atualizarExibicaoMeta();
-    }
-
-    function atualizarExibicaoMeta() {
-        if (!metaAtual || !metaAtual.valor) {
-            cartaoMeta.hidden = true;
-            botaoDefinirMeta.hidden = false;
-            return;
-        }
-
-        cartaoMeta.hidden = false;
-        botaoDefinirMeta.hidden = true;
-
-        descricaoMetaEl.textContent = metaAtual.descricao || "Sua meta de economia";
-
-        const percentual = Math.min(100, (totalAtual / metaAtual.valor) * 100);
-        barraMeta.style.width = `${percentual}%`;
-        barraMeta.className = "barra-orcamento-preenchida";
-        if (percentual >= 100) barraMeta.classList.add("estourou"); // aqui "estourou" = bateu a meta, cor de destaque
-
-        textoProgressoMeta.textContent = `${formatarMoeda(totalAtual)} de ${formatarMoeda(metaAtual.valor)} (${Math.round(percentual)}%)`;
-    }
-
-    function abrirModalMeta() {
-        campoDescricaoMeta.value = metaAtual ? (metaAtual.descricao || "") : "";
-        campoValorMeta.value = metaAtual ? metaAtual.valor : "";
-        botaoRemoverMeta.hidden = !metaAtual;
-        mensagemAvisoMeta.classList.remove("visivel");
-        fundoModalMeta.classList.add("aberto");
-    }
-
-    function fecharModalMeta() {
-        fundoModalMeta.classList.remove("aberto");
-    }
-
-    botaoDefinirMeta.addEventListener("click", abrirModalMeta);
-    botaoEditarMeta.addEventListener("click", abrirModalMeta);
-    botaoFecharMeta.addEventListener("click", fecharModalMeta);
-    fundoModalMeta.addEventListener("click", (evento) => {
-        if (evento.target === fundoModalMeta) fecharModalMeta();
-    });
-
-    botaoSalvarMeta.addEventListener("click", async () => {
-        const valor = parseFloat(campoValorMeta.value);
-        const descricao = campoDescricaoMeta.value.trim();
-        mensagemAvisoMeta.classList.remove("visivel");
-
-        if (!valor || valor <= 0) {
-            mensagemAvisoMeta.textContent = "Digita um valor maior que zero pra meta.";
-            mensagemAvisoMeta.classList.add("visivel");
-            return;
-        }
-
-        botaoSalvarMeta.disabled = true;
-        spinnerMeta.hidden = false;
-
-        metaAtual = { valor, descricao };
-        await setDoc(doc(db, "usuarios", uidAtual, "configuracoes", "metaEconomia"), metaAtual);
-
-        atualizarExibicaoMeta();
-        botaoSalvarMeta.disabled = false;
-        spinnerMeta.hidden = true;
-        fecharModalMeta();
-    });
-
-    botaoRemoverMeta.addEventListener("click", async () => {
-        const confirmou = window.confirm("Tem certeza de que deseja remover essa meta?");
-        if (!confirmou) return;
-
-        await deleteDoc(doc(db, "usuarios", uidAtual, "configuracoes", "metaEconomia"));
-        metaAtual = null;
-        atualizarExibicaoMeta();
-        fecharModalMeta();
-    });
-
+    // ==========================================================================
+    // HISTÓRICO E TOTAL GERAL (igual antes)
+    // ==========================================================================
     function escutarGuardado() {
         const referencia = collection(db, "usuarios", uidAtual, "lancamentos");
         // Sem orderBy aqui de propósito: um "where" sozinho não precisa de
@@ -147,6 +75,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const dataFormatada = dataObj.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
                 const ehRetirada = dados.valor < 0;
                 const sinal = ehRetirada ? "−" : "+";
+                const metaTexto = dados.meta ? ` · ${dados.meta}` : "";
 
                 const item = document.createElement("li");
                 item.className = `item-lancamento ${ehRetirada ? "tipo-gasto" : "tipo-ganho"}`;
@@ -154,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <span class="ponto-categoria"></span>
                     <div class="info-lancamento">
                         <div class="descricao-lancamento">${dados.descricao || (ehRetirada ? "Retirada" : "Guardado")}</div>
-                        <div class="meta-lancamento">${dataFormatada}</div>
+                        <div class="meta-lancamento">${dataFormatada}${metaTexto}</div>
                     </div>
                     <span class="valor-lancamento">${sinal} ${formatarMoeda(Math.abs(dados.valor))}</span>
                     <button class="botao-excluir" data-id="${documento.id}" aria-label="Excluir">
@@ -168,7 +97,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
             totalAtual = total;
             totalGuardadoEl.textContent = formatarMoeda(total);
-            atualizarExibicaoMeta();
+
+            todosOsDepositos = documentosOrdenados;
+            renderizarMetas(); // os totais por meta dependem dos depósitos também
         });
     }
 
@@ -180,6 +111,119 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!confirmou) return;
 
         await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", botao.dataset.id));
+    });
+
+    // ==========================================================================
+    // METAS — uma barra de progresso por meta
+    // ==========================================================================
+    let listaDeMetas = []; // [{id, nome, valor}]
+
+    function escutarMetas() {
+        const referencia = collection(db, "usuarios", uidAtual, "metas");
+        onSnapshot(referencia, (snapshot) => {
+            listaDeMetas = snapshot.docs.map((documento) => ({ id: documento.id, ...documento.data() }));
+            renderizarMetas();
+        });
+    }
+
+    function totalGuardadoNaMeta(nomeDaMeta) {
+        return todosOsDepositos
+            .filter((documento) => documento.data().meta === nomeDaMeta && documento.data().valor > 0)
+            .reduce((soma, documento) => soma + documento.data().valor, 0);
+    }
+
+    function renderizarMetas() {
+        listaMetas.innerHTML = "";
+        metasVazio.hidden = listaDeMetas.length > 0;
+
+        listaDeMetas.forEach((meta) => {
+            const totalNaMeta = totalGuardadoNaMeta(meta.nome);
+            const temValorAlvo = meta.valor && meta.valor > 0;
+
+            let barraHtml = "";
+            if (temValorAlvo) {
+                const percentual = Math.min(100, (totalNaMeta / meta.valor) * 100);
+                const classeCor = percentual >= 100 ? "estourou" : "";
+                barraHtml = `
+                    <div class="barra-orcamento-wrapper" style="margin-top: 8px;">
+                        <div class="barra-orcamento-preenchida ${classeCor}" style="width: ${percentual}%"></div>
+                    </div>
+                    <div class="texto-barra-orcamento">${formatarMoeda(totalNaMeta)} de ${formatarMoeda(meta.valor)} (${Math.round(percentual)}%)</div>
+                `;
+            } else {
+                barraHtml = `<div class="texto-barra-orcamento">${formatarMoeda(totalNaMeta)} guardado até agora</div>`;
+            }
+
+            const item = document.createElement("li");
+            item.className = "item-conta";
+            item.style.flexDirection = "column";
+            item.style.alignItems = "stretch";
+            item.innerHTML = `
+                <div style="display:flex; align-items:center; justify-content: space-between; width: 100%;">
+                    <span class="nome-conta">${meta.nome}</span>
+                    <button type="button" class="link-editar-meta" data-id="${meta.id}">Editar</button>
+                </div>
+                ${barraHtml}
+            `;
+            item.querySelector(".link-editar-meta").addEventListener("click", () => abrirModalMeta(meta));
+            listaMetas.appendChild(item);
+        });
+    }
+
+    function abrirModalMeta(meta) {
+        metaEmEdicaoId = meta ? meta.id : null;
+        tituloModalMeta.textContent = meta ? "Editar meta" : "Nova meta";
+        campoNomeMeta.value = meta ? meta.nome : "";
+        campoValorMeta.value = meta && meta.valor ? meta.valor : "";
+        botaoRemoverMeta.hidden = !meta;
+        mensagemAvisoMeta.classList.remove("visivel");
+        fundoModalMeta.classList.add("aberto");
+    }
+
+    function fecharModalMeta() {
+        fundoModalMeta.classList.remove("aberto");
+    }
+
+    botaoAbrirNovaMeta.addEventListener("click", () => abrirModalMeta(null));
+    botaoFecharMeta.addEventListener("click", fecharModalMeta);
+    fundoModalMeta.addEventListener("click", (evento) => {
+        if (evento.target === fundoModalMeta) fecharModalMeta();
+    });
+
+    botaoSalvarMeta.addEventListener("click", async () => {
+        const nome = campoNomeMeta.value.trim();
+        const valor = parseFloat(campoValorMeta.value);
+        mensagemAvisoMeta.classList.remove("visivel");
+
+        if (!nome) {
+            mensagemAvisoMeta.textContent = "Digita um nome pra meta.";
+            mensagemAvisoMeta.classList.add("visivel");
+            return;
+        }
+
+        botaoSalvarMeta.disabled = true;
+        spinnerMeta.hidden = false;
+
+        const dadosMeta = { nome, valor: (!valor || valor <= 0) ? null : valor };
+
+        if (metaEmEdicaoId) {
+            await updateDoc(doc(db, "usuarios", uidAtual, "metas", metaEmEdicaoId), dadosMeta);
+        } else {
+            await addDoc(collection(db, "usuarios", uidAtual, "metas"), dadosMeta);
+        }
+
+        botaoSalvarMeta.disabled = false;
+        spinnerMeta.hidden = true;
+        fecharModalMeta();
+    });
+
+    botaoRemoverMeta.addEventListener("click", async () => {
+        if (!metaEmEdicaoId) return;
+        const confirmou = window.confirm("Tem certeza de que deseja remover essa meta? O histórico de depósitos continua salvo normalmente.");
+        if (!confirmou) return;
+
+        await deleteDoc(doc(db, "usuarios", uidAtual, "metas", metaEmEdicaoId));
+        fecharModalMeta();
     });
 
     // ==========================================================================
