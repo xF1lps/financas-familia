@@ -381,6 +381,17 @@ body {
     color: var(--gasto-cor);
 }
 
+/* Cofrinho (Guardar Dinheiro) tem cor própria — nem verde nem vermelho,
+   pra não se confundir com ganho/gasto comuns na lista. Vem depois de
+   propósito, pra vencer a cor padrão de tipo-ganho/tipo-gasto */
+.item-lancamento.tipo-cofre .ponto-categoria {
+    background-color: #60A5FA;
+}
+
+.item-lancamento.tipo-cofre .valor-lancamento {
+    color: #60A5FA;
+}
+
 .botao-excluir {
     background: none;
     border: none;

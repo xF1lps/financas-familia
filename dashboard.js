@@ -1258,7 +1258,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const sinal = dados.tipo === "ganho" ? "+" : "-";
 
             const item = document.createElement("li");
-            item.className = `item-lancamento tipo-${dados.tipo}`;
+            item.className = `item-lancamento tipo-${dados.tipo}${dados.categoria === "Guardar Dinheiro" ? " tipo-cofre" : ""}`;
             item.dataset.id = documento.id;
 
             // Pra depósitos do cofrinho, o título grande mostra a meta (é o

@@ -96,7 +96,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const sinal = dados.tipo === "ganho" ? "+" : "-";
 
             const item = document.createElement("li");
-            item.className = `item-lancamento tipo-${dados.tipo}`;
+            item.className = `item-lancamento tipo-${dados.tipo}${dados.categoria === "Guardar Dinheiro" ? " tipo-cofre" : ""}`;
 
             const ehCofrinho = dados.categoria === "Guardar Dinheiro";
             const tituloGrande = ehCofrinho

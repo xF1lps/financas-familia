@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const tituloGrande = dados.descricao || dados.meta || (ehRetirada ? "Retirada" : "Guardado");
 
                 const item = document.createElement("li");
-                item.className = `item-lancamento ${ehRetirada ? "tipo-gasto" : "tipo-ganho"}`;
+                item.className = "item-lancamento tipo-cofre";
                 item.innerHTML = `
                     <span class="ponto-categoria"></span>
                     <div class="info-lancamento">
