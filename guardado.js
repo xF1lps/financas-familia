@@ -75,15 +75,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 const dataFormatada = dataObj.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
                 const ehRetirada = dados.valor < 0;
                 const sinal = ehRetirada ? "−" : "+";
-                const metaTexto = dados.meta ? ` · ${dados.meta}` : "";
+
+                const tituloGrande = dados.descricao || dados.meta || (ehRetirada ? "Retirada" : "Guardado");
 
                 const item = document.createElement("li");
                 item.className = `item-lancamento ${ehRetirada ? "tipo-gasto" : "tipo-ganho"}`;
                 item.innerHTML = `
                     <span class="ponto-categoria"></span>
                     <div class="info-lancamento">
-                        <div class="descricao-lancamento">${dados.descricao || (ehRetirada ? "Retirada" : "Guardado")}</div>
-                        <div class="meta-lancamento">${dataFormatada}${metaTexto}</div>
+                        <div class="descricao-lancamento">${tituloGrande}</div>
+                        <div class="meta-lancamento">Guardar Dinheiro · ${dataFormatada}</div>
                     </div>
                     <span class="valor-lancamento">${sinal} ${formatarMoeda(Math.abs(dados.valor))}</span>
                     <button class="botao-excluir" data-id="${documento.id}" aria-label="Excluir">
