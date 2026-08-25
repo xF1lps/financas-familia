@@ -1,8 +1,8 @@
 import { auth, db } from "./firebase-config.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
     collection, addDoc, updateDoc, setDoc, deleteDoc, doc, getDoc, getDocs,
-    query, where, orderBy, onSnapshot, Timestamp, serverTimestamp
+    query, where, orderBy, onSnapshot, Timestamp, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const CATEGORIAS_PADRAO = {
@@ -33,7 +33,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // 1. REFERÊNCIAS AOS ELEMENTOS DA TELA
     // ==========================================================================
     const emailUsuario = document.getElementById("email-usuario");
-    const botaoSair = document.getElementById("botao-sair");
 
     const botaoHamburguer = document.getElementById("botao-hamburguer");
     const overlayMenu = document.getElementById("overlay-menu");
@@ -56,6 +55,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const pendenciasVazio = document.getElementById("pendencias-vazio");
     const linkExtrato = document.getElementById("link-extrato");
 
+    const fundoModalEditarCategoria = document.getElementById("fundo-modal-editar-categoria");
+    const botaoFecharEditarCategoria = document.getElementById("botao-fechar-editar-categoria");
+    const campoNovoNomeCategoria = document.getElementById("campo-novo-nome-categoria");
+    const campoLimiteCategoria = document.getElementById("campo-limite-categoria");
+    const mensagemAvisoEditarCategoria = document.getElementById("mensagem-aviso-editar-categoria");
+    const botaoSalvarEditarCategoria = document.getElementById("botao-salvar-editar-categoria");
+    const spinnerEditarCategoria = botaoSalvarEditarCategoria.querySelector(".spinner-botao");
     const fundoModalConselho = document.getElementById("fundo-modal-conselho");
     const botaoFecharConselho = document.getElementById("botao-fechar-conselho");
     const fundoModalAniversario = document.getElementById("fundo-modal-aniversario");
@@ -90,6 +96,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const campoCategoriaWrapper = document.getElementById("campo-categoria-wrapper");
     const campoCategoria = document.getElementById("campo-categoria");
     const botaoExcluirCategoria = document.getElementById("botao-excluir-categoria");
+    const botaoEditarCategoria = document.getElementById("botao-editar-categoria");
     const campoNovaCategoriaWrapper = document.getElementById("campo-nova-categoria-wrapper");
     const campoNovaCategoria = document.getElementById("campo-nova-categoria");
     const campoDescricao = document.getElementById("campo-descricao");
@@ -159,14 +166,6 @@ document.addEventListener("DOMContentLoaded", function () {
         // O banner de salário roda numa consulta separada, olhando pro mês
         // atual de verdade — independente de qual mês está sendo navegado
         if (salarioPadrao > 0) escutarSalarioDoMes();
-    });
-
-    botaoSair.addEventListener("click", async () => {
-        const confirmou = window.confirm("Tem certeza de que deseja encerrar a sessão?");
-        if (!confirmou) return;
-
-        await signOut(auth);
-        window.location.href = "index.html";
     });
 
     // ==========================================================================
@@ -359,11 +358,13 @@ document.addEventListener("DOMContentLoaded", function () {
         atualizarBotaoExcluirCategoria();
     }
 
-    // Mostra a lixeira só quando a categoria selecionada no momento for uma
-    // que a própria pessoa criou (nunca nas fixas, tipo "Outros")
+    // Mostra a lixeira e o lápis só quando a categoria selecionada no momento
+    // for uma que a própria pessoa criou (nunca nas fixas, tipo "Outros")
     function atualizarBotaoExcluirCategoria() {
         const opcaoSelecionada = campoCategoria.options[campoCategoria.selectedIndex];
-        botaoExcluirCategoria.hidden = !opcaoSelecionada || opcaoSelecionada.dataset.customizada !== "true";
+        const ehCustomizada = opcaoSelecionada && opcaoSelecionada.dataset.customizada === "true";
+        botaoExcluirCategoria.hidden = !ehCustomizada;
+        botaoEditarCategoria.hidden = !ehCustomizada;
     }
 
     campoCategoria.addEventListener("change", () => {
@@ -387,6 +388,112 @@ document.addEventListener("DOMContentLoaded", function () {
         popularSelectCategorias();
         campoCategoria.value = "Outros";
         atualizarBotaoExcluirCategoria();
+    });
+
+    // ==========================================================================
+    // EDITAR CATEGORIA — nome e limite mensal, no mesmo lugar em que a
+    // categoria é usada (lápis ao lado do select, dentro do formulário)
+    // ==========================================================================
+    let categoriaEmEdicaoId = null;
+    let categoriaEmEdicaoNomeAntigo = null;
+
+    botaoEditarCategoria.addEventListener("click", async () => {
+        const opcaoSelecionada = campoCategoria.options[campoCategoria.selectedIndex];
+        if (!opcaoSelecionada || opcaoSelecionada.dataset.customizada !== "true") return;
+
+        categoriaEmEdicaoId = opcaoSelecionada.dataset.categoriaId;
+        categoriaEmEdicaoNomeAntigo = opcaoSelecionada.value;
+
+        campoNovoNomeCategoria.value = categoriaEmEdicaoNomeAntigo;
+        campoLimiteCategoria.value = mapaOrcamentos[categoriaEmEdicaoNomeAntigo] || "";
+        mensagemAvisoEditarCategoria.classList.remove("visivel");
+
+        fundoModalEditarCategoria.classList.add("aberto");
+    });
+
+    function fecharModalEditarCategoria() {
+        fundoModalEditarCategoria.classList.remove("aberto");
+    }
+
+    botaoFecharEditarCategoria.addEventListener("click", fecharModalEditarCategoria);
+    fundoModalEditarCategoria.addEventListener("click", (evento) => {
+        if (evento.target === fundoModalEditarCategoria) fecharModalEditarCategoria();
+    });
+
+    botaoSalvarEditarCategoria.addEventListener("click", async () => {
+        const novoNome = campoNovoNomeCategoria.value.trim();
+        const novoLimite = parseFloat(campoLimiteCategoria.value);
+        mensagemAvisoEditarCategoria.classList.remove("visivel");
+
+        if (!novoNome) {
+            mensagemAvisoEditarCategoria.textContent = "Digita um nome pra categoria.";
+            mensagemAvisoEditarCategoria.classList.add("visivel");
+            return;
+        }
+
+        botaoSalvarEditarCategoria.disabled = true;
+        spinnerEditarCategoria.hidden = false;
+
+        try {
+            const nomeMudou = novoNome !== categoriaEmEdicaoNomeAntigo;
+
+            if (nomeMudou) {
+                // 1) Atualiza o nome no documento da própria categoria
+                await updateDoc(doc(db, "usuarios", uidAtual, "categorias", categoriaEmEdicaoId), {
+                    nome: novoNome
+                });
+
+                // 2) Atualiza TODOS os lançamentos antigos que usavam o nome
+                // velho, pra manter o histórico consistente (decisão já
+                // combinada: atualizar tudo, não deixar "misturado")
+                const referenciaLancamentos = collection(db, "usuarios", uidAtual, "lancamentos");
+                const consultaAntigos = query(referenciaLancamentos, where("categoria", "==", categoriaEmEdicaoNomeAntigo));
+                const lancamentosAntigos = await getDocs(consultaAntigos);
+
+                if (!lancamentosAntigos.empty) {
+                    const lote = writeBatch(db);
+                    lancamentosAntigos.forEach((documento) => {
+                        lote.update(documento.ref, { categoria: novoNome });
+                    });
+                    await lote.commit();
+                }
+
+                // 3) "Move" o orçamento configurado (Firestore não deixa
+                // renomear o ID de um documento, então apaga o antigo e cria
+                // um novo com o nome atualizado)
+                if (mapaOrcamentos[categoriaEmEdicaoNomeAntigo] !== undefined) {
+                    await deleteDoc(doc(db, "usuarios", uidAtual, "orcamentos", categoriaEmEdicaoNomeAntigo)).catch(() => {});
+                    delete mapaOrcamentos[categoriaEmEdicaoNomeAntigo];
+                }
+            }
+
+            // Salva (ou remove) o limite mensal, já usando o nome final
+            const referenciaOrcamento = doc(db, "usuarios", uidAtual, "orcamentos", novoNome);
+            if (!novoLimite || novoLimite <= 0) {
+                await deleteDoc(referenciaOrcamento).catch(() => {});
+                delete mapaOrcamentos[novoNome];
+            } else {
+                await setDoc(referenciaOrcamento, { categoria: novoNome, limite: novoLimite });
+                mapaOrcamentos[novoNome] = novoLimite;
+            }
+
+            // Atualiza o estado local, sem precisar recarregar a página inteira
+            const categoriaLocal = categoriasCustomizadas[tipoSelecionado].find((c) => c.id === categoriaEmEdicaoId);
+            if (categoriaLocal) categoriaLocal.nome = novoNome;
+
+            popularSelectCategorias();
+            campoCategoria.value = novoNome;
+            atualizarBotaoExcluirCategoria();
+
+            fecharModalEditarCategoria();
+
+        } catch (erro) {
+            mensagemAvisoEditarCategoria.textContent = "Não deu pra salvar agora. Confere sua internet e tenta de novo.";
+            mensagemAvisoEditarCategoria.classList.add("visivel");
+        } finally {
+            botaoSalvarEditarCategoria.disabled = false;
+            spinnerEditarCategoria.hidden = true;
+        }
     });
 
     // ==========================================================================

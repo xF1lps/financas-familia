@@ -41,12 +41,10 @@
                 <span class="ponto-marca"></span>
                 <span class="email-usuario" id="email-usuario"></span>
             </div>
-            <a href="perfil.html" class="botao-encerrar-sessao">Editar Perfil</a>
-            <a href="orcamento.html" class="botao-encerrar-sessao">Orçamento por Categoria</a>
             <a href="guardado.html" class="botao-encerrar-sessao">Saldo Guardado</a>
             <a href="anotacoes.html" class="botao-encerrar-sessao">Lembretes de Pagamento</a>
             <a href="extrato.html" class="botao-encerrar-sessao">Ver Extrato Completo</a>
-            <button class="botao-encerrar-sessao" id="botao-sair">Encerrar Sessão</button>
+            <a href="configuracoes.html" class="botao-encerrar-sessao">Configurações</a>
             <div class="creditos-menu">Desenvolvido por <strong>Philipe Emanuel</strong></div>
         </aside>
 
@@ -170,6 +168,11 @@
                     <label for="campo-categoria">Categoria</label>
                     <div class="categoria-com-lixeira">
                         <select id="campo-categoria" required></select>
+                        <button type="button" class="botao-editar-categoria" id="botao-editar-categoria" hidden aria-label="Editar categoria">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                            </svg>
+                        </button>
                         <button type="button" class="botao-excluir-categoria" id="botao-excluir-categoria" hidden aria-label="Excluir categoria">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/>
@@ -215,6 +218,39 @@
                     <span class="spinner-botao" hidden></span>
                 </button>
             </form>
+        </div>
+    </div>
+
+    <div class="fundo-modal" id="fundo-modal-editar-categoria">
+        <div class="modal-lancamento">
+            <div class="cabecalho-modal">
+                <h3>Editar categoria</h3>
+                <button class="botao-fechar-modal" id="botao-fechar-editar-categoria" aria-label="Fechar">✕</button>
+            </div>
+
+            <div class="campo">
+                <label for="campo-novo-nome-categoria">Nome da categoria</label>
+                <input type="text" id="campo-novo-nome-categoria" placeholder="Ex: Alimentação">
+            </div>
+
+            <div class="campo">
+                <label for="campo-limite-categoria">Limite mensal <span class="dica-campo">(opcional)</span></label>
+                <div class="valor-wrapper">
+                    <span class="prefixo-valor">R$</span>
+                    <input type="number" id="campo-limite-categoria" step="0.01" min="0" placeholder="Sem limite">
+                </div>
+            </div>
+
+            <p class="texto-explicativo-guardado" style="margin-bottom: 16px;">
+                Ao trocar o nome, todos os lançamentos antigos dessa categoria são atualizados também, pra manter tudo consistente no extrato.
+            </p>
+
+            <div class="mensagem-aviso" id="mensagem-aviso-editar-categoria" role="alert"></div>
+
+            <button type="button" class="botao-enviar" id="botao-salvar-editar-categoria">
+                <span class="texto-botao">Salvar alterações</span>
+                <span class="spinner-botao" hidden></span>
+            </button>
         </div>
     </div>
 
