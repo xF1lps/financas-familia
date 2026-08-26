@@ -4,7 +4,10 @@ import {
     createUserWithEmailAndPassword,
     onAuthStateChanged,
     signOut,
-    sendPasswordResetEmail
+    sendPasswordResetEmail,
+    GoogleAuthProvider,
+    signInWithRedirect,
+    getRedirectResult
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -18,6 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const campoEmail = document.getElementById("campo-email");
     const campoSenha = document.getElementById("campo-senha");
     const botaoEnviar = document.getElementById("botao-enviar");
+    const botaoGoogle = document.getElementById("botao-google");
     const textoBotao = botaoEnviar.querySelector(".texto-botao");
     const spinnerBotao = botaoEnviar.querySelector(".spinner-botao");
     const mensagemAviso = document.getElementById("mensagem-aviso");
@@ -152,6 +156,30 @@ document.addEventListener("DOMContentLoaded", function () {
         const perfilCompleto = instantaneo.exists() && instantaneo.data().onboardingCompleto === true;
         window.location.href = perfilCompleto ? "dashboard.html" : "onboarding.html";
     }
+
+    // ==========================================================================
+    // LOGIN COM GOOGLE
+    // Usa "redirect" (não "popup") de propósito — dentro de um PWA instalado
+    // na tela inicial do celular, popups costumam falhar ou nem abrir; o
+    // redirect sempre funciona, porque só troca de página normalmente e volta.
+    // O reroteamento em si (dashboard ou onboarding) já acontece sozinho pelo
+    // onAuthStateChanged lá embaixo, igual no login normal — não precisa de
+    // lógica especial nenhuma aqui.
+    // ==========================================================================
+    botaoGoogle.addEventListener("click", () => {
+        const provedorGoogle = new GoogleAuthProvider();
+        signInWithRedirect(auth, provedorGoogle);
+    });
+
+    // Se o login com Google deu algum erro (ex: já existe uma conta com esse
+    // e-mail feita por senha), mostra o aviso assim que a pessoa voltar
+    getRedirectResult(auth).catch((erro) => {
+        if (erro.code === "auth/account-exists-with-different-credential") {
+            mostrarAviso("Já existe uma conta com esse e-mail, feita com senha. Entra normalmente com e-mail e senha.");
+        } else if (erro.code && erro.code !== "auth/no-auth-event") {
+            mostrarAviso("Não deu pra entrar com o Google agora. Tenta de novo.");
+        }
+    });
 
     formulario.addEventListener("submit", async function (evento) {
         evento.preventDefault();
