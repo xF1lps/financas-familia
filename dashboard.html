@@ -276,14 +276,10 @@
         </div>
     </div>
 
-    <div class="fundo-modal" id="fundo-modal-aniversario">
-        <div class="modal-lancamento">
-            <div class="cabecalho-modal">
-                <h3>🎉 Parabéns!</h3>
-            </div>
-            <p class="texto-explicativo-guardado" id="texto-aniversario"></p>
-            <button type="button" class="botao-enviar" id="botao-fechar-aniversario">Obrigado!</button>
-        </div>
+    <!-- Toast — avisos rápidos no rodapé da tela ("Salvo ✓", "Excluído. Desfazer?") -->
+    <div class="toast" id="toast" hidden>
+        <span id="toast-mensagem"></span>
+        <button type="button" id="toast-botao-acao" hidden></button>
     </div>
 
     <script type="module" src="dashboard.js"></script>

@@ -406,6 +406,20 @@ body {
     color: var(--error);
 }
 
+.botao-duplicar {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    transition: color 0.2s ease;
+}
+
+.botao-duplicar:hover {
+    color: var(--accent);
+}
+
 .lista-vazia {
     text-align: center;
     color: var(--text-muted);

@@ -1,15 +1,19 @@
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-    collection, deleteDoc, doc, query, orderBy, onSnapshot
+    collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, Timestamp, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 document.addEventListener("DOMContentLoaded", function () {
 
     const listaExtrato = document.getElementById("lista-extrato");
+    const toast = document.getElementById("toast");
+    const toastMensagem = document.getElementById("toast-mensagem");
+    const toastBotaoAcao = document.getElementById("toast-botao-acao");
     const extratoVazio = document.getElementById("extrato-vazio");
     const filtroMes = document.getElementById("filtro-mes");
     const filtroValor = document.getElementById("filtro-valor");
+    const filtroTexto = document.getElementById("filtro-texto");
     const limparFiltroMes = document.getElementById("limpar-filtro-mes");
 
     let uidAtual = null;
@@ -45,6 +49,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================================================
     filtroMes.addEventListener("change", aplicarFiltrosERenderizar);
     filtroValor.addEventListener("input", aplicarFiltrosERenderizar);
+    filtroTexto.addEventListener("input", aplicarFiltrosERenderizar);
 
     limparFiltroMes.addEventListener("click", () => {
         filtroMes.value = "";
@@ -78,6 +83,15 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
+        const textoBuscado = filtroTexto.value.trim().toLowerCase();
+        if (textoBuscado) {
+            filtrados = filtrados.filter((documento) => {
+                const dados = documento.data();
+                const campos = [dados.descricao, dados.categoria, dados.meta].filter(Boolean).join(" ").toLowerCase();
+                return campos.includes(textoBuscado);
+            });
+        }
+
         renderizarLista(filtrados);
     }
 
@@ -97,6 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const item = document.createElement("li");
             item.className = `item-lancamento tipo-${dados.tipo}${dados.categoria === "Guardar Dinheiro" ? " tipo-cofre" : ""}`;
+            item._dadosOriginais = dados;
 
             const ehCofrinho = dados.categoria === "Guardar Dinheiro";
             const tituloGrande = ehCofrinho
@@ -120,6 +135,22 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    let timeoutToast = null;
+
+    function mostrarToastComAcao(mensagem, textoBotao, aoClicar, duracaoMs = 5000) {
+        if (timeoutToast) clearTimeout(timeoutToast);
+        toastMensagem.textContent = mensagem;
+        toastBotaoAcao.textContent = textoBotao;
+        toastBotaoAcao.hidden = false;
+        toastBotaoAcao.onclick = () => {
+            clearTimeout(timeoutToast);
+            toast.hidden = true;
+            aoClicar();
+        };
+        toast.hidden = false;
+        timeoutToast = setTimeout(() => { toast.hidden = true; }, duracaoMs);
+    }
+
     listaExtrato.addEventListener("click", async (evento) => {
         const botao = evento.target.closest(".botao-excluir");
         if (!botao) return;
@@ -133,7 +164,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const confirmou = window.confirm("Tem certeza de que deseja excluir este lançamento?");
         if (!confirmou) return;
+
+        const itemPai = botao.closest(".item-lancamento");
+        const dadosParaDesfazer = itemPai && itemPai._dadosOriginais ? { ...itemPai._dadosOriginais } : null;
+
         await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", botao.dataset.id));
+
+        if (dadosParaDesfazer) {
+            mostrarToastComAcao("Lançamento excluído.", "Desfazer", async () => {
+                await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
+                    tipo: dadosParaDesfazer.tipo,
+                    valor: dadosParaDesfazer.valor,
+                    categoria: dadosParaDesfazer.categoria,
+                    descricao: dadosParaDesfazer.descricao || "",
+                    data: dadosParaDesfazer.data,
+                    criadoEm: serverTimestamp()
+                });
+            });
+        }
     });
 
     function formatarMoeda(valor) {

@@ -30,6 +30,11 @@
 
         <main class="conteudo-principal">
 
+            <div class="campo-filtro" style="margin-bottom: 14px;">
+                <label for="filtro-texto">Buscar por descrição ou categoria</label>
+                <input type="text" id="filtro-texto" placeholder="Ex: Mercado, Uber, Alimentação...">
+            </div>
+
             <div class="filtros-extrato">
                 <div class="campo-filtro">
                     <label for="filtro-mes">Mês</label>
@@ -47,6 +52,12 @@
             <ul class="lista-lancamentos" id="lista-extrato"></ul>
             <p class="lista-vazia" id="extrato-vazio" hidden>Nenhum lançamento encontrado com esse filtro.</p>
         </main>
+    </div>
+
+    <!-- Toast — avisos rápidos no rodapé da tela -->
+    <div class="toast" id="toast" hidden>
+        <span id="toast-mensagem"></span>
+        <button type="button" id="toast-botao-acao" hidden></button>
     </div>
 
     <script type="module" src="extrato.js"></script>

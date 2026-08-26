@@ -63,6 +63,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const mensagemAvisoEditarCategoria = document.getElementById("mensagem-aviso-editar-categoria");
     const botaoSalvarEditarCategoria = document.getElementById("botao-salvar-editar-categoria");
     const spinnerEditarCategoria = botaoSalvarEditarCategoria.querySelector(".spinner-botao");
+    const toast = document.getElementById("toast");
+    const toastMensagem = document.getElementById("toast-mensagem");
+    const toastBotaoAcao = document.getElementById("toast-botao-acao");
     const fundoModalConselho = document.getElementById("fundo-modal-conselho");
     const botaoFecharConselho = document.getElementById("botao-fechar-conselho");
     const fundoModalAniversario = document.getElementById("fundo-modal-aniversario");
@@ -294,6 +297,37 @@ document.addEventListener("DOMContentLoaded", function () {
     botaoFecharAniversario.addEventListener("click", () => {
         fundoModalAniversario.classList.remove("aberto");
     });
+
+    // ==========================================================================
+    // TOAST — mensagens rápidas no rodapé da tela
+    // ==========================================================================
+    let timeoutToast = null;
+
+    // Mensagem simples, some sozinha (ex: "Lançamento salvo ✓")
+    function mostrarToast(mensagem, duracaoMs = 2200) {
+        if (timeoutToast) clearTimeout(timeoutToast);
+        toastMensagem.textContent = mensagem;
+        toastBotaoAcao.hidden = true;
+        toastBotaoAcao.onclick = null;
+        toast.hidden = false;
+        timeoutToast = setTimeout(() => { toast.hidden = true; }, duracaoMs);
+    }
+
+    // Mensagem com um botão de ação (ex: "Excluído. Desfazer?") — a ação só
+    // continua disponível enquanto o toast estiver na tela
+    function mostrarToastComAcao(mensagem, textoBotao, aoClicar, duracaoMs = 5000) {
+        if (timeoutToast) clearTimeout(timeoutToast);
+        toastMensagem.textContent = mensagem;
+        toastBotaoAcao.textContent = textoBotao;
+        toastBotaoAcao.hidden = false;
+        toastBotaoAcao.onclick = () => {
+            clearTimeout(timeoutToast);
+            toast.hidden = true;
+            aoClicar();
+        };
+        toast.hidden = false;
+        timeoutToast = setTimeout(() => { toast.hidden = true; }, duracaoMs);
+    }
 
     // ==========================================================================
     // 6. CATEGORIAS
@@ -830,6 +864,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 fecharModal();
+                mostrarToast("Alterações salvas ✓");
             } catch (erro) {
                 mostrarAviso("Não deu pra salvar agora. Confere sua internet e tenta de novo.");
             } finally {
@@ -885,6 +920,14 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             fecharModal();
+
+            if (ehParcelado) {
+                mostrarToast(`Parcelamento criado ✓ (${numeroParcelas}x)`);
+            } else if (campoFixo.checked) {
+                mostrarToast("Gasto fixo criado ✓");
+            } else {
+                mostrarToast("Lançamento salvo ✓");
+            }
 
         } catch (erro) {
             mostrarAviso("Não deu pra salvar agora. Confere sua internet e tenta de novo.");
@@ -1269,6 +1312,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 ? (dados.meta || "Guardado")
                 : (dados.descricao || dados.categoria);
 
+            const botaoDuplicarHtml = ehCofrinho ? "" : `
+                <button class="botao-duplicar" data-id="${documento.id}" aria-label="Duplicar lançamento">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                </button>
+            `;
+
             item.innerHTML = `
                 <span class="ponto-categoria"></span>
                 <div class="info-lancamento">
@@ -1276,6 +1328,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="meta-lancamento">${dados.categoria} · ${dataFormatada} às ${horaFormatada}</div>
                 </div>
                 <span class="valor-lancamento">${sinal} ${formatarMoeda(dados.valor)}</span>
+                ${botaoDuplicarHtml}
                 <button class="botao-excluir" data-id="${documento.id}" aria-label="Excluir lançamento">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/>
@@ -1290,6 +1343,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Clique no lançamento (fora do botão de excluir) abre edição
     listaLancamentos.addEventListener("click", async (evento) => {
+        const botaoDuplicar = evento.target.closest(".botao-duplicar");
+        if (botaoDuplicar) {
+            const itemPai = botaoDuplicar.closest(".item-lancamento");
+            const dadosDoItem = itemPai ? itemPai._dadosOriginais : null;
+            if (!dadosDoItem) return;
+
+            await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
+                tipo: dadosDoItem.tipo,
+                valor: dadosDoItem.valor,
+                categoria: dadosDoItem.categoria,
+                descricao: dadosDoItem.descricao || "",
+                data: Timestamp.fromDate(new Date()), // duplicado sempre cai em "hoje"
+                criadoEm: serverTimestamp()
+            });
+
+            mostrarToast("Lançamento duplicado pra hoje ✓");
+            return;
+        }
+
         const botaoExcluir = evento.target.closest(".botao-excluir");
         if (botaoExcluir) {
             const itemPai = botaoExcluir.closest(".item-lancamento");
@@ -1305,7 +1377,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const confirmou = window.confirm("Tem certeza de que deseja excluir este lançamento?");
             if (!confirmou) return;
+
+            // Guarda os dados ANTES de excluir, pra poder recriar se a pessoa
+            // clicar em "Desfazer" nos próximos segundos
+            const dadosParaDesfazer = dadosDoItem ? { ...dadosDoItem } : null;
+
             await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", botaoExcluir.dataset.id));
+
+            if (dadosParaDesfazer) {
+                mostrarToastComAcao("Lançamento excluído.", "Desfazer", async () => {
+                    await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
+                        tipo: dadosParaDesfazer.tipo,
+                        valor: dadosParaDesfazer.valor,
+                        categoria: dadosParaDesfazer.categoria,
+                        descricao: dadosParaDesfazer.descricao || "",
+                        data: dadosParaDesfazer.data,
+                        criadoEm: serverTimestamp()
+                    });
+                });
+            }
             return;
         }
 
@@ -1411,7 +1501,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         categorias.forEach((item, indice) => {
             const percentual = item.valor / totalGeral;
-            const cor = item.nome === "Guardado" ? "#34D399" : PALETA_GRAFICO[indice % PALETA_GRAFICO.length];
+            const cor = item.nome === "Guardado" ? "#60A5FA" : PALETA_GRAFICO[indice % PALETA_GRAFICO.length];
             const comprimentoFatia = percentual * circunferencia;
 
             const circulo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
