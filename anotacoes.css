@@ -134,8 +134,12 @@
     font-family: var(--fonte-titulo);
     font-weight: 600;
     font-size: 15px;
-    color: var(--gasto-cor);
+    color: #F5D76E; /* amarelo — ainda não foi paga, é um "meio-termo" */
     white-space: nowrap;
+}
+
+.conta-paga .valor-conta {
+    color: var(--sucesso); /* verde — já foi confirmado o pagamento */
 }
 
 .status-conta {
@@ -147,8 +151,8 @@
 
 .botao-marcar-pago {
     background: none;
-    border: 1px solid var(--borda);
-    color: var(--text-muted);
+    border: 1px solid rgba(245, 215, 110, 0.4);
+    color: #F5D76E;
     font-family: var(--fonte-corpo);
     font-size: 12px;
     font-weight: 600;

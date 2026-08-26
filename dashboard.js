@@ -1260,7 +1260,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             const item = document.createElement("li");
-            item.className = "item-conta";
+            item.className = `item-conta ${dados.pago ? "conta-paga" : "conta-pendente"}`;
             item.innerHTML = `
                 <div class="info-conta">
                     <div class="nome-conta">${dados.descricao}${badgeParcela}${badgeQuaseAcabando}</div>

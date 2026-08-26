@@ -198,7 +198,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const textoVencimento = temVencimento ? `Vence dia ${dados.diaVencimento}` : "Sem vencimento definido";
 
             const item = document.createElement("li");
-            item.className = "item-conta";
+            item.className = `item-conta ${estaPaga ? "conta-paga" : "conta-pendente"}`;
             item.dataset.id = documento.id;
             item._dadosOriginais = dados;
             item.innerHTML = `
