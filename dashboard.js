@@ -67,6 +67,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const toast = document.getElementById("toast");
     const toastMensagem = document.getElementById("toast-mensagem");
     const toastBotaoAcao = document.getElementById("toast-botao-acao");
+    const fundoModalExcluirPendencia = document.getElementById("fundo-modal-excluir-pendencia");
+    const botaoFecharExcluirPendencia = document.getElementById("botao-fechar-excluir-pendencia");
+    const etapaEscopoExclusao = document.getElementById("etapa-escopo-exclusao");
+    const textoPerguntaEscopo = document.getElementById("texto-pergunta-escopo");
+    const botaoExcluirSoEssa = document.getElementById("botao-excluir-so-essa");
+    const botaoExcluirTodas = document.getElementById("botao-excluir-todas");
+    const etapaConfirmarExclusao = document.getElementById("etapa-confirmar-exclusao");
+    const textoConfirmarExclusao = document.getElementById("texto-confirmar-exclusao");
+    const botaoConfirmarExclusaoFinal = document.getElementById("botao-confirmar-exclusao-final");
+    const botaoCancelarExclusao = document.getElementById("botao-cancelar-exclusao");
     const fundoModalConselho = document.getElementById("fundo-modal-conselho");
     const botaoFecharConselho = document.getElementById("botao-fechar-conselho");
     const fundoModalPendenciasAntigas = document.getElementById("fundo-modal-pendencias-antigas");
@@ -1165,6 +1175,88 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // ==========================================================================
+    // TELINHA DE EXCLUIR PENDÊNCIA (substitui os confirm() feios do navegador)
+    // ==========================================================================
+    let pendenciaEmExclusao = null; // { id, dados }
+    let escopoExclusaoEscolhido = null; // "so-essa" | "todas"
+
+    function abrirModalExcluirPendencia() {
+        const temGrupo = !!pendenciaEmExclusao.dados.grupoId;
+
+        // Se não faz parte de um grupo, pula direto pra confirmação final —
+        // não faz sentido perguntar "só essa ou todas" se só existe essa
+        if (!temGrupo) {
+            escopoExclusaoEscolhido = "so-essa";
+            mostrarEtapaConfirmacaoExclusao();
+        } else {
+            const tipoGrupo = pendenciaEmExclusao.dados.origem === "parcelado" ? "parcelamento" : "gasto fixo";
+            textoPerguntaEscopo.textContent = `Deseja excluir só essa ocorrência, ou todas as próximas desse ${tipoGrupo} (ainda não pagas)?`;
+            escopoExclusaoEscolhido = null;
+            etapaEscopoExclusao.hidden = false;
+            etapaConfirmarExclusao.hidden = true;
+        }
+
+        fundoModalExcluirPendencia.classList.add("aberto");
+    }
+
+    function fecharModalExcluirPendencia() {
+        fundoModalExcluirPendencia.classList.remove("aberto");
+        pendenciaEmExclusao = null;
+        escopoExclusaoEscolhido = null;
+    }
+
+    function mostrarEtapaConfirmacaoExclusao() {
+        etapaEscopoExclusao.hidden = true;
+        etapaConfirmarExclusao.hidden = false;
+
+        textoConfirmarExclusao.textContent = escopoExclusaoEscolhido === "todas"
+            ? "Tem certeza de que deseja excluir todas essas pendências? As que já foram marcadas como pagas continuam no seu histórico normalmente."
+            : "Tem certeza de que deseja excluir essa pendência? Se ela já estava marcada como paga, o lançamento correspondente também será removido do saldo.";
+    }
+
+    botaoExcluirSoEssa.addEventListener("click", () => {
+        escopoExclusaoEscolhido = "so-essa";
+        mostrarEtapaConfirmacaoExclusao();
+    });
+
+    botaoExcluirTodas.addEventListener("click", () => {
+        escopoExclusaoEscolhido = "todas";
+        mostrarEtapaConfirmacaoExclusao();
+    });
+
+    botaoFecharExcluirPendencia.addEventListener("click", fecharModalExcluirPendencia);
+    botaoCancelarExclusao.addEventListener("click", fecharModalExcluirPendencia);
+    fundoModalExcluirPendencia.addEventListener("click", (evento) => {
+        if (evento.target === fundoModalExcluirPendencia) fecharModalExcluirPendencia();
+    });
+
+    botaoConfirmarExclusaoFinal.addEventListener("click", async () => {
+        if (!pendenciaEmExclusao) return;
+        const { id, dados } = pendenciaEmExclusao;
+
+        botaoConfirmarExclusaoFinal.disabled = true;
+
+        if (escopoExclusaoEscolhido === "todas") {
+            const referenciaPendencias = collection(db, "usuarios", uidAtual, "pendencias");
+            const consultaGrupo = query(referenciaPendencias, where("grupoId", "==", dados.grupoId), where("pago", "==", false));
+            const pendenciasDoGrupo = await getDocs(consultaGrupo);
+            for (const documento of pendenciasDoGrupo.docs) {
+                await deleteDoc(documento.ref);
+            }
+        } else {
+            // Só essa: se já tinha sido marcada como paga, o lançamento real
+            // vinculado a ela também precisa ser apagado — senão fica órfão
+            if (dados.lancamentoId) {
+                await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", dados.lancamentoId)).catch(() => {});
+            }
+            await deleteDoc(doc(db, "usuarios", uidAtual, "pendencias", id));
+        }
+
+        botaoConfirmarExclusaoFinal.disabled = false;
+        fecharModalExcluirPendencia();
+    });
+
     listaPendencias.addEventListener("click", async (evento) => {
         const botaoExcluir = evento.target.closest(".botao-excluir-conta");
         if (botaoExcluir) {
@@ -1173,39 +1265,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const dadosExcluir = snapshotExcluir.exists() ? snapshotExcluir.data() : null;
             if (!dadosExcluir) return;
 
-            // 1) Primeiro pergunta o ESCOPO — se fizer parte de um grupo (Gasto
-            // Fixo ou Parcelamento), pergunta se é só essa ocorrência ou todas
-            // as futuras não pagas do grupo
-            let excluirGrupoTodo = false;
-            if (dadosExcluir.grupoId) {
-                const tipoGrupo = dadosExcluir.origem === "parcelado" ? "parcelamento" : "gasto fixo";
-                excluirGrupoTodo = window.confirm(`Quer excluir só essa ocorrência, ou todas as próximas desse ${tipoGrupo} (ainda não pagas)? Clica em "OK" pra excluir todas, ou "Cancelar" pra excluir só essa.`);
-            }
-
-            // 2) Só depois, pede a confirmação final de verdade
-            const mensagemConfirmacao = excluirGrupoTodo
-                ? "Tem certeza de que deseja excluir todas essas pendências?"
-                : "Tem certeza de que deseja excluir essa pendência? Se ela já estava marcada como paga, o lançamento correspondente também será removido do saldo.";
-            const confirmouExcluir = window.confirm(mensagemConfirmacao);
-            if (!confirmouExcluir) return;
-
-            if (excluirGrupoTodo) {
-                const referenciaPendencias = collection(db, "usuarios", uidAtual, "pendencias");
-                const consultaGrupo = query(referenciaPendencias, where("grupoId", "==", dadosExcluir.grupoId), where("pago", "==", false));
-                const pendenciasDoGrupo = await getDocs(consultaGrupo);
-                for (const documento of pendenciasDoGrupo.docs) {
-                    await deleteDoc(documento.ref);
-                }
-                return;
-            }
-
-            // Só essa: se já tinha sido marcada como paga, o lançamento real
-            // vinculado a ela também precisa ser apagado — senão fica órfão
-            if (dadosExcluir.lancamentoId) {
-                await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", dadosExcluir.lancamentoId)).catch(() => {});
-            }
-
-            await deleteDoc(referenciaPendenciaExcluir);
+            pendenciaEmExclusao = { id: botaoExcluir.dataset.id, dados: dadosExcluir };
+            abrirModalExcluirPendencia();
             return;
         }
 

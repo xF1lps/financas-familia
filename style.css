@@ -515,6 +515,15 @@ select:focus {
     cursor: not-allowed;
 }
 
+.botao-enviar.botao-perigo {
+    background-color: var(--error);
+    color: #FFFFFF;
+}
+
+.botao-enviar.botao-perigo:hover {
+    background-color: #C93A3F;
+}
+
 /* Spinner de carregamento dentro do botão */
 .spinner-botao {
     width: 16px;

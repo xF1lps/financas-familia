@@ -257,6 +257,29 @@
         </div>
     </div>
 
+    <div class="fundo-modal" id="fundo-modal-excluir-pendencia">
+        <div class="modal-lancamento">
+            <div class="cabecalho-modal">
+                <h3>Excluir pendência</h3>
+                <button class="botao-fechar-modal" id="botao-fechar-excluir-pendencia" aria-label="Fechar">✕</button>
+            </div>
+
+            <div id="etapa-escopo-exclusao">
+                <p class="pergunta-escolha" id="texto-pergunta-escopo">Deseja excluir só essa ocorrência, ou todas as próximas (ainda não pagas)?</p>
+                <div class="botoes-escolha">
+                    <button type="button" class="botao-escolha-tipo" id="botao-excluir-so-essa">Só essa</button>
+                    <button type="button" class="botao-escolha-tipo" id="botao-excluir-todas">Todas as próximas</button>
+                </div>
+            </div>
+
+            <div id="etapa-confirmar-exclusao" hidden>
+                <p class="texto-explicativo-guardado" id="texto-confirmar-exclusao"></p>
+                <button type="button" class="botao-enviar botao-perigo" id="botao-confirmar-exclusao-final">Sim, excluir</button>
+                <button type="button" class="link-botao-simples" id="botao-cancelar-exclusao" style="display:block; margin: 14px auto 0;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="fundo-modal" id="fundo-modal-conselho">
         <div class="modal-lancamento">
             <div class="cabecalho-modal">
