@@ -262,3 +262,42 @@
     cursor: pointer;
     flex-shrink: 0;
 }
+
+/* ==========================================================================
+   CELULAR — o item de pendência/conta tem muita informação (nome, badges,
+   total da compra, pago em...), então no celular empilha tudo em vez de
+   tentar espremer numa linha só, que ficava feio e cortado
+   ========================================================================== */
+@media (max-width: 600px) {
+    .item-conta {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 10px 12px;
+        padding: 16px;
+    }
+
+    .info-conta {
+        flex-basis: 100%;
+        order: 1;
+    }
+
+    .valor-conta {
+        order: 2;
+        font-size: 16px;
+    }
+
+    .status-conta {
+        order: 3;
+        margin-left: auto;
+    }
+
+    .nome-conta {
+        line-height: 1.4;
+    }
+
+    .badge-parcela {
+        margin-left: 0;
+        margin-top: 4px;
+        margin-right: 4px;
+    }
+}

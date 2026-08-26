@@ -61,6 +61,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const campoNovoNomeCategoria = document.getElementById("campo-novo-nome-categoria");
     const campoLimiteCategoriaWrapper = document.getElementById("campo-limite-categoria-wrapper");
     const campoLimiteCategoria = document.getElementById("campo-limite-categoria");
+    const campoVencimentoCategoriaWrapper = document.getElementById("campo-vencimento-categoria-wrapper");
+    const campoVencimentoCategoria = document.getElementById("campo-vencimento-categoria");
+    const textoAvisoVencimento = document.getElementById("texto-aviso-vencimento");
     const mensagemAvisoEditarCategoria = document.getElementById("mensagem-aviso-editar-categoria");
     const botaoSalvarEditarCategoria = document.getElementById("botao-salvar-editar-categoria");
     const spinnerEditarCategoria = botaoSalvarEditarCategoria.querySelector(".spinner-botao");
@@ -126,6 +129,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const botaoEditarCategoria = document.getElementById("botao-editar-categoria");
     const campoNovaCategoriaWrapper = document.getElementById("campo-nova-categoria-wrapper");
     const campoNovaCategoria = document.getElementById("campo-nova-categoria");
+    const campoVencimentoNovaCategoriaWrapper = document.getElementById("campo-vencimento-nova-categoria-wrapper");
+    const campoVencimentoNovaCategoria = document.getElementById("campo-vencimento-nova-categoria");
     const campoDescricaoWrapper = document.getElementById("campo-descricao-wrapper");
     const campoDescricao = document.getElementById("campo-descricao");
     const campoData = document.getElementById("campo-data");
@@ -548,6 +553,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const criandoNova = campoCategoria.value === "__nova__";
         campoNovaCategoriaWrapper.hidden = !criandoNova;
         campoNovaCategoria.required = criandoNova;
+        // Vencimento só faz sentido pro lado Gasto (é usado em gasto fixo/parcelado)
+        campoVencimentoNovaCategoriaWrapper.hidden = !criandoNova || tipoSelecionado !== "gasto";
         atualizarBotaoExcluirCategoria();
     });
 
@@ -585,9 +592,19 @@ document.addEventListener("DOMContentLoaded", function () {
         campoLimiteCategoria.value = mapaOrcamentos[categoriaEmEdicaoNomeAntigo] || "";
         mensagemAvisoEditarCategoria.classList.remove("visivel");
 
-        // "Limite mensal" só faz sentido pra categorias de Gasto — não existe
-        // "limite" pra Ganho/Extra, então o campo nem aparece nesse caso
-        campoLimiteCategoriaWrapper.hidden = tipoSelecionado !== "gasto";
+        // "Limite mensal" e "Vencimento" só fazem sentido pra categorias de
+        // Gasto (não existe "limite"/"vencimento" pra Ganho/Extra)
+        const ehGasto = tipoSelecionado === "gasto";
+        campoLimiteCategoriaWrapper.hidden = !ehGasto;
+        campoVencimentoCategoriaWrapper.hidden = !ehGasto;
+
+        if (ehGasto) {
+            // Busca o vencimento atual guardado na própria categoria
+            const snapshotCategoria = await getDoc(doc(db, "usuarios", uidAtual, "categorias", categoriaEmEdicaoId));
+            const vencimentoAtual = snapshotCategoria.exists() ? snapshotCategoria.data().diaVencimento : null;
+            campoVencimentoCategoria.value = vencimentoAtual || "";
+            textoAvisoVencimento.hidden = false;
+        }
 
         fundoModalEditarCategoria.classList.add("aberto");
     });
@@ -674,6 +691,33 @@ document.addEventListener("DOMContentLoaded", function () {
                     await setDoc(referenciaOrcamento, { categoria: novoNome, limite: novoLimite });
                     mapaOrcamentos[novoNome] = novoLimite;
                 }
+
+                // Salva o vencimento na própria categoria, e propaga pra todas
+                // as pendências AINDA NÃO PAGAS dessa categoria — assim, se
+                // você errou o dia na hora de criar, não precisa apagar e
+                // recriar o gasto fixo/parcelamento inteiro, só corrigir aqui
+                const novoVencimento = parseInt(campoVencimentoCategoria.value, 10) || null;
+                await updateDoc(doc(db, "usuarios", uidAtual, "categorias", categoriaEmEdicaoId), {
+                    diaVencimento: novoVencimento
+                });
+
+                if (novoVencimento) {
+                    const referenciaPendenciasVencimento = collection(db, "usuarios", uidAtual, "pendencias");
+                    const consultaPendenciasVencimento = query(
+                        referenciaPendenciasVencimento,
+                        where("categoria", "==", novoNome),
+                        where("pago", "==", false)
+                    );
+                    const pendenciasParaAtualizar = await getDocs(consultaPendenciasVencimento);
+
+                    if (!pendenciasParaAtualizar.empty) {
+                        const loteVencimento = writeBatch(db);
+                        pendenciasParaAtualizar.forEach((documento) => {
+                            loteVencimento.update(documento.ref, { diaDoMes: novoVencimento });
+                        });
+                        await loteVencimento.commit();
+                    }
+                }
             }
 
             // Atualiza o estado local, sem precisar recarregar a página inteira
@@ -711,6 +755,7 @@ document.addEventListener("DOMContentLoaded", function () {
         campoCategoriaWrapper.hidden = false;
         campoCategoria.required = true;
         campoNovaCategoriaWrapper.hidden = true;
+        campoVencimentoNovaCategoriaWrapper.hidden = true;
         campoNovaCategoria.required = false; // sem isso, ficava "grudado" de uma vez que criou categoria nova antes
         campoParcelasWrapper.hidden = true;
         campoParcelas.required = false; // mesmo problema, grudava depois de usar "Parcelar" uma vez
@@ -752,6 +797,7 @@ document.addEventListener("DOMContentLoaded", function () {
         campoDescricao.value = dados.descricao || "";
         campoData.value = formatarDataParaCampo(dados.data.toDate());
         campoNovaCategoriaWrapper.hidden = true;
+        campoVencimentoNovaCategoriaWrapper.hidden = true;
         campoNovaCategoria.required = false;
         campoParcelas.required = false;
 
@@ -790,6 +836,7 @@ document.addEventListener("DOMContentLoaded", function () {
         campoCategoriaWrapper.hidden = false;
         campoCategoria.required = true;
         campoNovaCategoriaWrapper.hidden = true;
+        campoVencimentoNovaCategoriaWrapper.hidden = true;
         botaoExcluirCategoria.hidden = true;
         botaoEditarCategoria.hidden = true;
 
@@ -980,9 +1027,11 @@ document.addEventListener("DOMContentLoaded", function () {
             definirCarregando(true);
             try {
                 if (campoCategoria.value === "__nova__" && !modoGuardar) {
+                    const vencimentoNovaCategoria = parseInt(campoVencimentoNovaCategoria.value, 10) || null;
                     const referenciaCategoria = await addDoc(collection(db, "usuarios", uidAtual, "categorias"), {
                         nome: categoriaFinal,
-                        tipo: tipoSelecionado
+                        tipo: tipoSelecionado,
+                        diaVencimento: vencimentoNovaCategoria
                     });
                     categoriasCustomizadas[tipoSelecionado].push({ nome: categoriaFinal, id: referenciaCategoria.id });
                 }
@@ -1041,9 +1090,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
         try {
             if (campoCategoria.value === "__nova__" && !modoGuardar) {
+                const vencimentoNovaCategoria = parseInt(campoVencimentoNovaCategoria.value, 10) || null;
                 const referenciaCategoria = await addDoc(collection(db, "usuarios", uidAtual, "categorias"), {
                     nome: categoriaFinal,
-                    tipo: tipoSelecionado
+                    tipo: tipoSelecionado,
+                    diaVencimento: vencimentoNovaCategoria
                 });
                 categoriasCustomizadas[tipoSelecionado].push({ nome: categoriaFinal, id: referenciaCategoria.id });
             }
@@ -1213,7 +1264,7 @@ document.addEventListener("DOMContentLoaded", function () {
             item.innerHTML = `
                 <div class="info-conta">
                     <div class="nome-conta">${dados.descricao}${badgeParcela}${badgeQuaseAcabando}</div>
-                    <div class="meta-conta">${dados.categoria} · Dia ${dados.diaDoMes}</div>
+                    <div class="meta-conta">${dados.categoria} · Vence dia ${dados.diaDoMes}</div>
                     ${textoValorTotal}
                     ${textoPagoEm}
                 </div>
