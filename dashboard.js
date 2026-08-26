@@ -67,6 +67,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const toast = document.getElementById("toast");
     const toastMensagem = document.getElementById("toast-mensagem");
     const toastBotaoAcao = document.getElementById("toast-botao-acao");
+    const fundoModalConfirmar = document.getElementById("fundo-modal-confirmar");
+    const tituloModalConfirmar = document.getElementById("titulo-modal-confirmar");
+    const textoModalConfirmar = document.getElementById("texto-modal-confirmar");
+    const botaoConfirmarAcao = document.getElementById("botao-confirmar-acao");
+    const botaoCancelarAcao = document.getElementById("botao-cancelar-acao");
+    const botaoFecharConfirmar = document.getElementById("botao-fechar-confirmar");
     const fundoModalExcluirPendencia = document.getElementById("fundo-modal-excluir-pendencia");
     const botaoFecharExcluirPendencia = document.getElementById("botao-fechar-excluir-pendencia");
     const etapaEscopoExclusao = document.getElementById("etapa-escopo-exclusao");
@@ -136,6 +142,31 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================================================
     // 2. ESTADO DA TELA
     // ==========================================================================
+    // TELINHA DE CONFIRMAÇÃO GENÉRICA — substitui o confirm() feio do
+    // navegador por uma telinha nas cores do app, em qualquer lugar do
+    // dashboard que precise perguntar "tem certeza?"
+    // ==========================================================================
+    function confirmarComTelinha(mensagem, titulo = "Confirmar") {
+        return new Promise((resolve) => {
+            tituloModalConfirmar.textContent = titulo;
+            textoModalConfirmar.textContent = mensagem;
+            fundoModalConfirmar.classList.add("aberto");
+
+            function limpar() {
+                fundoModalConfirmar.classList.remove("aberto");
+                botaoConfirmarAcao.removeEventListener("click", aoConfirmar);
+                botaoCancelarAcao.removeEventListener("click", aoCancelar);
+                botaoFecharConfirmar.removeEventListener("click", aoCancelar);
+            }
+            function aoConfirmar() { limpar(); resolve(true); }
+            function aoCancelar() { limpar(); resolve(false); }
+
+            botaoConfirmarAcao.addEventListener("click", aoConfirmar);
+            botaoCancelarAcao.addEventListener("click", aoCancelar);
+            botaoFecharConfirmar.addEventListener("click", aoCancelar);
+        });
+    }
+
     let uidAtual = null;
     let mesSelecionado = new Date();
     let tipoSelecionado = "gasto";
@@ -524,7 +555,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const opcaoSelecionada = campoCategoria.options[campoCategoria.selectedIndex];
         if (!opcaoSelecionada || opcaoSelecionada.dataset.customizada !== "true") return;
 
-        const confirmou = window.confirm(`Tem certeza de que deseja excluir a categoria "${opcaoSelecionada.value}"? Lançamentos antigos que usam ela continuam salvos normalmente no extrato.`);
+        const confirmou = await confirmarComTelinha(`Tem certeza de que deseja excluir a categoria "${opcaoSelecionada.value}"? Lançamentos antigos que usam ela continuam salvos normalmente no extrato.`);
         if (!confirmou) return;
 
         const categoriaId = opcaoSelecionada.dataset.categoriaId;
@@ -927,7 +958,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // ---- Fluxo de EDIÇÃO ----
         if (idEmEdicao) {
-            const confirmou = window.confirm("Tem certeza de que deseja salvar as alterações deste lançamento?");
+            const confirmou = await confirmarComTelinha("Tem certeza de que deseja salvar as alterações deste lançamento?");
             if (!confirmou) return;
 
             definirCarregando(true);
@@ -985,7 +1016,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (jaExisteParecido) {
                 const tipoTexto = ehParcelado ? "parcelamento" : "gasto fixo";
                 const nomeParaMensagem = campoDescricao.value.trim() || categoriaFinal;
-                const confirmouMesmoAssim = window.confirm(`Parece que você já tem um ${tipoTexto} chamado "${nomeParaMensagem}" criado antes. Tem certeza de que deseja criar de novo?`);
+                const confirmouMesmoAssim = await confirmarComTelinha(`Parece que você já tem um ${tipoTexto} chamado "${nomeParaMensagem}" criado antes. Tem certeza de que deseja criar de novo?`);
                 if (!confirmouMesmoAssim) return;
             }
         }
@@ -1278,7 +1309,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const referenciaPendencia = doc(db, "usuarios", uidAtual, "pendencias", idPendencia);
 
         if (jaEstavaPago) {
-            const confirmouDesmarcar = window.confirm("Tem certeza de que deseja desmarcar esse pagamento? O lançamento correspondente vai ser removido do saldo e do extrato.");
+            const confirmouDesmarcar = await confirmarComTelinha("Tem certeza de que deseja desmarcar esse pagamento? O lançamento correspondente vai ser removido do saldo e do extrato.");
             if (!confirmouDesmarcar) return;
 
             // Desmarcar precisa apagar o lançamento real que foi criado quando
@@ -1295,7 +1326,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const confirmouPagar = window.confirm("Tem certeza de que esse pagamento já foi feito? Isso vai descontar o valor do seu saldo.");
+        const confirmouPagar = await confirmarComTelinha("Tem certeza de que esse pagamento já foi feito? Isso vai descontar o valor do seu saldo.");
         if (!confirmouPagar) return;
 
         // Marcar como paga: busca os dados da própria pendência pra criar o
@@ -1528,7 +1559,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!dadosDoItem) return;
 
             const descricaoOuCategoria = dadosDoItem.descricao || dadosDoItem.categoria;
-            const confirmou = window.confirm(`Duplicar "${descricaoOuCategoria}" (${formatarMoeda(dadosDoItem.valor)}) com a data de hoje?`);
+            const confirmou = await confirmarComTelinha(`Duplicar "${descricaoOuCategoria}" (${formatarMoeda(dadosDoItem.valor)}) com a data de hoje?`);
             if (!confirmou) return;
 
             await addDoc(collection(db, "usuarios", uidAtual, "lancamentos"), {
@@ -1557,7 +1588,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            const confirmou = window.confirm("Tem certeza de que deseja excluir este lançamento?");
+            const confirmou = await confirmarComTelinha("Tem certeza de que deseja excluir este lançamento?");
             if (!confirmou) return;
 
             // Guarda os dados ANTES de excluir, pra poder recriar se a pessoa

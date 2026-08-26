@@ -34,6 +34,35 @@ document.addEventListener("DOMContentLoaded", function () {
     const botaoConfirmarRetirada = document.getElementById("botao-confirmar-retirada");
     const spinnerRetirada = botaoConfirmarRetirada.querySelector(".spinner-botao");
 
+    const fundoModalConfirmar = document.getElementById("fundo-modal-confirmar");
+    const tituloModalConfirmar = document.getElementById("titulo-modal-confirmar");
+    const textoModalConfirmar = document.getElementById("texto-modal-confirmar");
+    const botaoConfirmarAcao = document.getElementById("botao-confirmar-acao");
+    const botaoCancelarAcao = document.getElementById("botao-cancelar-acao");
+    const botaoFecharConfirmar = document.getElementById("botao-fechar-confirmar");
+
+    // Substitui o confirm() feio do navegador por uma telinha nas cores do app
+    function confirmarComTelinha(mensagem, titulo = "Confirmar") {
+        return new Promise((resolve) => {
+            tituloModalConfirmar.textContent = titulo;
+            textoModalConfirmar.textContent = mensagem;
+            fundoModalConfirmar.classList.add("aberto");
+
+            function limpar() {
+                fundoModalConfirmar.classList.remove("aberto");
+                botaoConfirmarAcao.removeEventListener("click", aoConfirmar);
+                botaoCancelarAcao.removeEventListener("click", aoCancelar);
+                botaoFecharConfirmar.removeEventListener("click", aoCancelar);
+            }
+            function aoConfirmar() { limpar(); resolve(true); }
+            function aoCancelar() { limpar(); resolve(false); }
+
+            botaoConfirmarAcao.addEventListener("click", aoConfirmar);
+            botaoCancelarAcao.addEventListener("click", aoCancelar);
+            botaoFecharConfirmar.addEventListener("click", aoCancelar);
+        });
+    }
+
     let uidAtual = null;
     let totalAtual = 0;
     let todosOsDepositos = []; // todos os lançamentos de "Guardar Dinheiro" (pra somar por meta)
@@ -108,7 +137,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const botao = evento.target.closest(".botao-excluir");
         if (!botao) return;
 
-        const confirmou = window.confirm("Tem certeza de que deseja excluir este registro?");
+        const confirmou = await confirmarComTelinha("Tem certeza de que deseja excluir este registro?");
         if (!confirmou) return;
 
         await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", botao.dataset.id));
@@ -220,7 +249,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     botaoRemoverMeta.addEventListener("click", async () => {
         if (!metaEmEdicaoId) return;
-        const confirmou = window.confirm("Tem certeza de que deseja remover essa meta? O histórico de depósitos continua salvo normalmente.");
+        const confirmou = await confirmarComTelinha("Tem certeza de que deseja remover essa meta? O histórico de depósitos continua salvo normalmente.");
         if (!confirmou) return;
 
         await deleteDoc(doc(db, "usuarios", uidAtual, "metas", metaEmEdicaoId));

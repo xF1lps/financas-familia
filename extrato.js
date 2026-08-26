@@ -10,6 +10,35 @@ document.addEventListener("DOMContentLoaded", function () {
     const toast = document.getElementById("toast");
     const toastMensagem = document.getElementById("toast-mensagem");
     const toastBotaoAcao = document.getElementById("toast-botao-acao");
+
+    const fundoModalConfirmar = document.getElementById("fundo-modal-confirmar");
+    const tituloModalConfirmar = document.getElementById("titulo-modal-confirmar");
+    const textoModalConfirmar = document.getElementById("texto-modal-confirmar");
+    const botaoConfirmarAcao = document.getElementById("botao-confirmar-acao");
+    const botaoCancelarAcao = document.getElementById("botao-cancelar-acao");
+    const botaoFecharConfirmar = document.getElementById("botao-fechar-confirmar");
+
+    // Substitui o confirm() feio do navegador por uma telinha nas cores do app
+    function confirmarComTelinha(mensagem, titulo = "Confirmar") {
+        return new Promise((resolve) => {
+            tituloModalConfirmar.textContent = titulo;
+            textoModalConfirmar.textContent = mensagem;
+            fundoModalConfirmar.classList.add("aberto");
+
+            function limpar() {
+                fundoModalConfirmar.classList.remove("aberto");
+                botaoConfirmarAcao.removeEventListener("click", aoConfirmar);
+                botaoCancelarAcao.removeEventListener("click", aoCancelar);
+                botaoFecharConfirmar.removeEventListener("click", aoCancelar);
+            }
+            function aoConfirmar() { limpar(); resolve(true); }
+            function aoCancelar() { limpar(); resolve(false); }
+
+            botaoConfirmarAcao.addEventListener("click", aoConfirmar);
+            botaoCancelarAcao.addEventListener("click", aoCancelar);
+            botaoFecharConfirmar.addEventListener("click", aoCancelar);
+        });
+    }
     const extratoVazio = document.getElementById("extrato-vazio");
     const filtroMes = document.getElementById("filtro-mes");
     const filtroValor = document.getElementById("filtro-valor");
@@ -171,7 +200,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const confirmou = window.confirm("Tem certeza de que deseja excluir este lançamento?");
+        const confirmou = await confirmarComTelinha("Tem certeza de que deseja excluir este lançamento?");
         if (!confirmou) return;
 
         const itemPai = botao.closest(".item-lancamento");

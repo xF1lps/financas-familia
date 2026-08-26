@@ -40,6 +40,35 @@ document.addEventListener("DOMContentLoaded", function () {
     const textoBotaoSalvarAnotacao = botaoSalvarAnotacao.querySelector(".texto-botao");
     const spinnerAnotacao = botaoSalvarAnotacao.querySelector(".spinner-botao");
 
+    const fundoModalConfirmar = document.getElementById("fundo-modal-confirmar");
+    const tituloModalConfirmar = document.getElementById("titulo-modal-confirmar");
+    const textoModalConfirmar = document.getElementById("texto-modal-confirmar");
+    const botaoConfirmarAcao = document.getElementById("botao-confirmar-acao");
+    const botaoCancelarAcao = document.getElementById("botao-cancelar-acao");
+    const botaoFecharConfirmar = document.getElementById("botao-fechar-confirmar");
+
+    // Substitui o confirm() feio do navegador por uma telinha nas cores do app
+    function confirmarComTelinha(mensagem, titulo = "Confirmar") {
+        return new Promise((resolve) => {
+            tituloModalConfirmar.textContent = titulo;
+            textoModalConfirmar.textContent = mensagem;
+            fundoModalConfirmar.classList.add("aberto");
+
+            function limpar() {
+                fundoModalConfirmar.classList.remove("aberto");
+                botaoConfirmarAcao.removeEventListener("click", aoConfirmar);
+                botaoCancelarAcao.removeEventListener("click", aoCancelar);
+                botaoFecharConfirmar.removeEventListener("click", aoCancelar);
+            }
+            function aoConfirmar() { limpar(); resolve(true); }
+            function aoCancelar() { limpar(); resolve(false); }
+
+            botaoConfirmarAcao.addEventListener("click", aoConfirmar);
+            botaoCancelarAcao.addEventListener("click", aoCancelar);
+            botaoFecharConfirmar.addEventListener("click", aoCancelar);
+        });
+    }
+
     let uidAtual = null;
     let mesSelecionado = new Date();
     let modoSelecao = false;
@@ -226,7 +255,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const confirmou = window.confirm(`Tem certeza de que deseja excluir ${marcados.length} lembrete(s)?`);
+        const confirmou = await confirmarComTelinha(`Tem certeza de que deseja excluir ${marcados.length} lembrete(s)?`);
         if (!confirmou) return;
 
         for (const checkbox of marcados) {
@@ -253,7 +282,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const botaoExcluir = evento.target.closest(".botao-excluir-conta");
         if (botaoExcluir) {
-            const confirmou = window.confirm("Tem certeza de que deseja excluir esse lembrete?");
+            const confirmou = await confirmarComTelinha("Tem certeza de que deseja excluir esse lembrete?");
             if (!confirmou) return;
             await deleteDoc(doc(db, "usuarios", uidAtual, "anotacoes", botaoExcluir.dataset.id));
             return;
