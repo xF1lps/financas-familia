@@ -331,7 +331,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function formatarMoeda(valor) {
-        return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        // Corrige o "zero negativo" do JavaScript — quando uma conta bate
+        // exatamente em zero (tipo saldo - gastos - lembretes = 0), o
+        // resultado às vezes vem como -0 tecnicamente, e sem isso aqui
+        // apareceria "-R$ 0,00" na tela, o que é enganoso (não é negativo de verdade)
+        const valorCorrigido = valor === 0 ? 0 : valor;
+        return valorCorrigido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     }
 
 });

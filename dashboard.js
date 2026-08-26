@@ -24,7 +24,7 @@ const LIMITE_ITENS_LISTA_INICIAL = 4;
 // Navegação do calendário: do início do ano atual até dezembro de 2028 —
 // dá espaço suficiente pra parcelamentos longos (até 48x) não ficarem sem
 // mês pra "morar"
-const LIMITE_NAVEGACAO_SUPERIOR = new Date(2028, 11, 1);
+const LIMITE_NAVEGACAO_SUPERIOR = new Date(2030, 11, 1);
 const LIMITE_NAVEGACAO_INFERIOR = new Date(new Date().getFullYear(), 0, 1);
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -1111,6 +1111,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             await addDoc(collection(db, "usuarios", uidAtual, "pendencias"), {
                 valor: valorDessaParcela,
+                valorTotalCompra: valorTotal,
                 categoria,
                 descricao: descricaoBase || categoria,
                 diaDoMes: diaFinal,
@@ -1198,12 +1199,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 textoPagoEm = `<div class="texto-pago-em">Pago em ${dataFormatadaPagamento} às ${horaFormatadaPagamento}</div>`;
             }
 
+            // Mostra o valor total da compra, não só o da parcela — usa o
+            // valor exato guardado (valorTotalCompra), ou faz uma aproximação
+            // multiplicando pra pendências criadas antes desse campo existir
+            let textoValorTotal = "";
+            if (dados.origem === "parcelado") {
+                const totalDaCompra = dados.valorTotalCompra ?? (dados.valor * dados.totalParcelas);
+                textoValorTotal = `<div class="texto-pago-em" style="color: var(--text-muted);">Total da compra: ${formatarMoeda(totalDaCompra)}</div>`;
+            }
+
             const item = document.createElement("li");
             item.className = "item-conta";
             item.innerHTML = `
                 <div class="info-conta">
                     <div class="nome-conta">${dados.descricao}${badgeParcela}${badgeQuaseAcabando}</div>
                     <div class="meta-conta">${dados.categoria} · Dia ${dados.diaDoMes}</div>
+                    ${textoValorTotal}
                     ${textoPagoEm}
                 </div>
                 <span class="valor-conta">${formatarMoeda(dados.valor)}</span>
@@ -1700,7 +1711,12 @@ document.addEventListener("DOMContentLoaded", function () {
     // FORMATAR MOEDA
     // ==========================================================================
     function formatarMoeda(valor) {
-        return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        // Corrige o "zero negativo" do JavaScript — quando uma conta bate
+        // exatamente em zero (tipo saldo - gastos - lembretes = 0), o
+        // resultado às vezes vem como -0 tecnicamente, e sem isso aqui
+        // apareceria "-R$ 0,00" na tela, o que é enganoso (não é negativo de verdade)
+        const valorCorrigido = valor === 0 ? 0 : valor;
+        return valorCorrigido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     }
 
     // Converte texto digitado em número, aceitando tanto vírgula quanto ponto
