@@ -956,6 +956,30 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+        // Se for Gasto Fixo ou Parcelado, confere se já não existe um parecido
+        // (mesma descrição/categoria) — evita duplicar por esquecimento
+        if (ehParcelado || campoFixo.checked) {
+            const origemNova = ehParcelado ? "parcelado" : "fixo";
+            const descricaoNova = (campoDescricao.value.trim() || categoriaFinal).toLowerCase();
+
+            const referenciaPendenciasExistentes = collection(db, "usuarios", uidAtual, "pendencias");
+            const consultaOrigem = query(referenciaPendenciasExistentes, where("origem", "==", origemNova));
+            const resultadoExistentes = await getDocs(consultaOrigem);
+
+            const jaExisteParecido = resultadoExistentes.docs.some((documento) => {
+                const dadosExistente = documento.data();
+                const descricaoExistente = (dadosExistente.descricao || dadosExistente.categoria || "").toLowerCase();
+                return descricaoExistente === descricaoNova;
+            });
+
+            if (jaExisteParecido) {
+                const tipoTexto = ehParcelado ? "parcelamento" : "gasto fixo";
+                const nomeParaMensagem = campoDescricao.value.trim() || categoriaFinal;
+                const confirmouMesmoAssim = window.confirm(`Parece que você já tem um ${tipoTexto} chamado "${nomeParaMensagem}" criado antes. Tem certeza de que deseja criar de novo?`);
+                if (!confirmouMesmoAssim) return;
+            }
+        }
+
         definirCarregando(true);
 
         try {
@@ -1106,13 +1130,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 ? `<span class="badge-parcela badge-quase-acabando">Quase acabando!</span>`
                 : "";
 
-            // Só o Gasto Fixo tem a opção de cancelar tudo de uma vez — parcela
-            // tem quantidade combinada (fim natural), fixo é indefinido, então
-            // faz mais sentido oferecer esse "desligar" aqui
-            const linkCancelar = dados.origem === "fixo" && dados.grupoId
-                ? `<button class="link-cancelar-recorrencia" data-grupo="${dados.grupoId}">Cancelar recorrência</button>`
-                : "";
-
             // Se já foi paga, mostra quando exatamente isso aconteceu — o campo
             // pagoEm só existe a partir de agora; pendências marcadas como pagas
             // antes dessa atualização simplesmente não mostram essa linha
@@ -1131,7 +1148,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="nome-conta">${dados.descricao}${badgeParcela}${badgeQuaseAcabando}</div>
                     <div class="meta-conta">${dados.categoria} · Dia ${dados.diaDoMes}</div>
                     ${textoPagoEm}
-                    ${linkCancelar}
                 </div>
                 <span class="valor-conta">${formatarMoeda(dados.valor)}</span>
                 <div class="status-conta">
@@ -1150,35 +1166,42 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     listaPendencias.addEventListener("click", async (evento) => {
-        const botaoCancelarRecorrencia = evento.target.closest(".link-cancelar-recorrencia");
-        if (botaoCancelarRecorrencia) {
-            const confirmou = window.confirm("Isso cancela as próximas ocorrências desse gasto fixo. As que já foram marcadas como pagas continuam no seu histórico normalmente. Tem certeza?");
-            if (!confirmou) return;
-
-            const grupoId = botaoCancelarRecorrencia.dataset.grupo;
-            const referenciaPendencias = collection(db, "usuarios", uidAtual, "pendencias");
-            const consultaGrupo = query(referenciaPendencias, where("grupoId", "==", grupoId), where("pago", "==", false));
-            const pendenciasDoGrupo = await getDocs(consultaGrupo);
-
-            for (const documento of pendenciasDoGrupo.docs) {
-                await deleteDoc(documento.ref);
-            }
-            return;
-        }
-
         const botaoExcluir = evento.target.closest(".botao-excluir-conta");
         if (botaoExcluir) {
-            const confirmou = window.confirm("Tem certeza de que deseja excluir essa pendência? Se ela já estava marcada como paga, o lançamento correspondente também será removido do saldo.");
-            if (!confirmou) return;
-
             const referenciaPendenciaExcluir = doc(db, "usuarios", uidAtual, "pendencias", botaoExcluir.dataset.id);
             const snapshotExcluir = await getDoc(referenciaPendenciaExcluir);
             const dadosExcluir = snapshotExcluir.exists() ? snapshotExcluir.data() : null;
+            if (!dadosExcluir) return;
 
-            // Se a pendência já tinha sido marcada como paga, o lançamento
-            // real vinculado a ela também precisa ser apagado — senão ele
-            // fica órfão, do mesmo jeito que o bug de desmarcar que já corrigimos
-            if (dadosExcluir && dadosExcluir.lancamentoId) {
+            // 1) Primeiro pergunta o ESCOPO — se fizer parte de um grupo (Gasto
+            // Fixo ou Parcelamento), pergunta se é só essa ocorrência ou todas
+            // as futuras não pagas do grupo
+            let excluirGrupoTodo = false;
+            if (dadosExcluir.grupoId) {
+                const tipoGrupo = dadosExcluir.origem === "parcelado" ? "parcelamento" : "gasto fixo";
+                excluirGrupoTodo = window.confirm(`Quer excluir só essa ocorrência, ou todas as próximas desse ${tipoGrupo} (ainda não pagas)? Clica em "OK" pra excluir todas, ou "Cancelar" pra excluir só essa.`);
+            }
+
+            // 2) Só depois, pede a confirmação final de verdade
+            const mensagemConfirmacao = excluirGrupoTodo
+                ? "Tem certeza de que deseja excluir todas essas pendências?"
+                : "Tem certeza de que deseja excluir essa pendência? Se ela já estava marcada como paga, o lançamento correspondente também será removido do saldo.";
+            const confirmouExcluir = window.confirm(mensagemConfirmacao);
+            if (!confirmouExcluir) return;
+
+            if (excluirGrupoTodo) {
+                const referenciaPendencias = collection(db, "usuarios", uidAtual, "pendencias");
+                const consultaGrupo = query(referenciaPendencias, where("grupoId", "==", dadosExcluir.grupoId), where("pago", "==", false));
+                const pendenciasDoGrupo = await getDocs(consultaGrupo);
+                for (const documento of pendenciasDoGrupo.docs) {
+                    await deleteDoc(documento.ref);
+                }
+                return;
+            }
+
+            // Só essa: se já tinha sido marcada como paga, o lançamento real
+            // vinculado a ela também precisa ser apagado — senão fica órfão
+            if (dadosExcluir.lancamentoId) {
                 await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", dadosExcluir.lancamentoId)).catch(() => {});
             }
 
