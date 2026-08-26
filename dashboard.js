@@ -69,6 +69,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const toastBotaoAcao = document.getElementById("toast-botao-acao");
     const fundoModalConselho = document.getElementById("fundo-modal-conselho");
     const botaoFecharConselho = document.getElementById("botao-fechar-conselho");
+    const fundoModalPendenciasAntigas = document.getElementById("fundo-modal-pendencias-antigas");
+    const textoPendenciasAntigas = document.getElementById("texto-pendencias-antigas");
+    const botaoVerPendenciasAntigas = document.getElementById("botao-ver-pendencias-antigas");
+    const botaoFecharPendenciasAntigas = document.getElementById("botao-fechar-pendencias-antigas");
     const fundoModalAniversario = document.getElementById("fundo-modal-aniversario");
     const textoAniversario = document.getElementById("texto-aniversario");
     const botaoFecharAniversario = document.getElementById("botao-fechar-aniversario");
@@ -172,6 +176,7 @@ document.addEventListener("DOMContentLoaded", function () {
         buscarGastosMesAnterior();
         verificarConselhoMensal(perfil);
         verificarAniversario(perfil);
+        verificarPendenciasAntigas();
 
         // O banner de salário roda numa consulta separada, olhando pro mês
         // atual de verdade — independente de qual mês está sendo navegado
@@ -269,6 +274,63 @@ document.addEventListener("DOMContentLoaded", function () {
 
     botaoFecharConselho.addEventListener("click", () => {
         fundoModalConselho.classList.remove("aberto");
+    });
+
+    // ==========================================================================
+    // PENDÊNCIAS ANTIGAS — avisa se tem gasto fixo/parcela de 2+ meses atrás
+    // que nunca foi marcado como pago, pra pessoa não perder o controle do
+    // saldo por esquecimento
+    // ==========================================================================
+    let mesMaisAntigoComPendencia = null;
+
+    async function verificarPendenciasAntigas() {
+        const referencia = collection(db, "usuarios", uidAtual, "pendencias");
+        // Só um filtro de igualdade aqui — não precisa de índice composto
+        const consulta = query(referencia, where("pago", "==", false));
+        const resultado = await getDocs(consulta);
+
+        const hoje = new Date();
+        const chaveMesAtual = hoje.getFullYear() * 12 + hoje.getMonth();
+
+        let contagemAntigas = 0;
+        mesMaisAntigoComPendencia = null;
+        let chaveMaisAntiga = Infinity;
+
+        resultado.forEach((documento) => {
+            const dados = documento.data();
+            const [ano, mes] = dados.mesReferencia.split("-").map(Number);
+            const chaveDoDocumento = ano * 12 + (mes - 1);
+
+            // "Antiga" = de 2 meses atrás ou mais (dá uma folga de 1 mês,
+            // que é normal a pessoa só confirmar depois que a fatura chega)
+            if (chaveMesAtual - chaveDoDocumento >= 2) {
+                contagemAntigas++;
+                if (chaveDoDocumento < chaveMaisAntiga) {
+                    chaveMaisAntiga = chaveDoDocumento;
+                    mesMaisAntigoComPendencia = { ano, mes: mes - 1 };
+                }
+            }
+        });
+
+        if (contagemAntigas > 0) {
+            textoPendenciasAntigas.textContent = `Você tem ${contagemAntigas} pendência${contagemAntigas > 1 ? "s" : ""} de gasto fixo/parcela de 2 meses atrás ou mais, ainda não confirmada${contagemAntigas > 1 ? "s" : ""}. Vale a pena revisar, pra manter o saldo certinho.`;
+            fundoModalPendenciasAntigas.classList.add("aberto");
+        }
+    }
+
+    botaoFecharPendenciasAntigas.addEventListener("click", () => {
+        fundoModalPendenciasAntigas.classList.remove("aberto");
+    });
+
+    botaoVerPendenciasAntigas.addEventListener("click", () => {
+        fundoModalPendenciasAntigas.classList.remove("aberto");
+        if (mesMaisAntigoComPendencia) {
+            mesSelecionado = new Date(mesMaisAntigoComPendencia.ano, mesMaisAntigoComPendencia.mes, 1);
+            atualizarRotuloMes();
+            escutarLancamentosDoMes();
+            escutarPendenciasDoMes();
+            buscarGastosMesAnterior();
+        }
     });
 
     // ==========================================================================
@@ -1028,9 +1090,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
         documentos.forEach((documento) => {
             const dados = documento.data();
+            const parcelasRestantes = dados.origem === "parcelado" ? dados.totalParcelas - dados.numeroParcela : null;
             const badgeParcela = dados.origem === "parcelado"
                 ? `<span class="badge-parcela">Parcela ${dados.numeroParcela}/${dados.totalParcelas}</span>`
                 : `<span class="badge-parcela">Fixo</span>`;
+
+            // Avisa quando o parcelamento está quase no fim (falta 1 ou 2
+            // parcelas), pra pessoa já se preparar que o orçamento vai
+            // "sobrar" em breve, ou lembrar de renovar algo
+            const badgeQuaseAcabando = (parcelasRestantes !== null && parcelasRestantes <= 1)
+                ? `<span class="badge-parcela badge-quase-acabando">Quase acabando!</span>`
+                : "";
 
             // Só o Gasto Fixo tem a opção de cancelar tudo de uma vez — parcela
             // tem quantidade combinada (fim natural), fixo é indefinido, então
@@ -1043,7 +1113,7 @@ document.addEventListener("DOMContentLoaded", function () {
             item.className = "item-conta";
             item.innerHTML = `
                 <div class="info-conta">
-                    <div class="nome-conta">${dados.descricao}${badgeParcela}</div>
+                    <div class="nome-conta">${dados.descricao}${badgeParcela}${badgeQuaseAcabando}</div>
                     <div class="meta-conta">${dados.categoria} · Dia ${dados.diaDoMes}</div>
                     ${linkCancelar}
                 </div>
