@@ -606,6 +606,9 @@ select:focus {
     .tela-login {
         grid-template-columns: 1fr;
         grid-template-rows: auto 1fr;
+        height: 100vh; /* trava a altura de verdade (não só um mínimo), senão o
+                           painel do formulário nunca fica "pequeno" o bastante
+                           pra precisar rolar internamente */
     }
 
     .painel-marca {
@@ -633,6 +636,8 @@ select:focus {
 
     .painel-formulario {
         padding: 28px 22px 48px 22px;
+        overflow-y: auto;
+        min-height: 0; /* sem isso, um item de grid não consegue encolher/rolar de verdade */
     }
 }
 

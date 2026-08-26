@@ -6,8 +6,7 @@ import {
     signOut,
     sendPasswordResetEmail,
     GoogleAuthProvider,
-    signInWithRedirect,
-    getRedirectResult
+    signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -159,25 +158,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // ==========================================================================
     // LOGIN COM GOOGLE
-    // Usa "redirect" (não "popup") de propósito — dentro de um PWA instalado
-    // na tela inicial do celular, popups costumam falhar ou nem abrir; o
-    // redirect sempre funciona, porque só troca de página normalmente e volta.
-    // O reroteamento em si (dashboard ou onboarding) já acontece sozinho pelo
-    // onAuthStateChanged lá embaixo, igual no login normal — não precisa de
-    // lógica especial nenhuma aqui.
+    // Usa "popup" — o "redirect" depende de um mecanismo de armazenamento
+    // entre domínios que navegadores modernos (Chrome, Safari, Firefox) vêm
+    // bloqueando cada vez mais por padrão, o que trava o login no meio do
+    // caminho (você confirma a conta, mas não completa). O popup não tem
+    // essa dependência, e é o que o próprio Firebase recomenda pra isso.
+    // O reroteamento em si (dashboard ou onboarding) acontece sozinho pelo
+    // onAuthStateChanged lá embaixo, igual no login normal.
     // ==========================================================================
-    botaoGoogle.addEventListener("click", () => {
+    botaoGoogle.addEventListener("click", async () => {
         const provedorGoogle = new GoogleAuthProvider();
-        signInWithRedirect(auth, provedorGoogle);
-    });
-
-    // Se o login com Google deu algum erro (ex: já existe uma conta com esse
-    // e-mail feita por senha), mostra o aviso assim que a pessoa voltar
-    getRedirectResult(auth).catch((erro) => {
-        if (erro.code === "auth/account-exists-with-different-credential") {
-            mostrarAviso("Já existe uma conta com esse e-mail, feita com senha. Entra normalmente com e-mail e senha.");
-        } else if (erro.code && erro.code !== "auth/no-auth-event") {
-            mostrarAviso("Não deu pra entrar com o Google agora. Tenta de novo.");
+        try {
+            await signInWithPopup(auth, provedorGoogle);
+        } catch (erro) {
+            if (erro.code === "auth/account-exists-with-different-credential") {
+                mostrarAviso("Já existe uma conta com esse e-mail, feita com senha. Entra normalmente com e-mail e senha.");
+            } else if (erro.code !== "auth/popup-closed-by-user" && erro.code !== "auth/cancelled-popup-request") {
+                mostrarAviso("Não deu pra entrar com o Google agora. Tenta de novo.");
+            }
         }
     });
 
