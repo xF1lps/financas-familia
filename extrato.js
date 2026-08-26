@@ -20,10 +20,19 @@ document.addEventListener("DOMContentLoaded", function () {
     let todosOsLancamentos = []; // guarda tudo que veio do Firestore, sem filtro
 
     // Se a pessoa chegou aqui pelo link "Ver extrato completo" da tela inicial,
-    // a URL já vem com ?mes=2026-08 — pré-preenche o filtro de mês com isso
+    // a URL já vem com ?mes=2026-08 — pré-preenche o filtro de mês com isso.
+    // Se veio de um clique no gráfico da tela inicial, também vem ?categoria=X
     const parametros = new URLSearchParams(window.location.search);
     const mesDaUrl = parametros.get("mes");
     if (mesDaUrl) filtroMes.value = mesDaUrl;
+
+    const categoriaDaUrl = parametros.get("categoria");
+    if (categoriaDaUrl) filtroTexto.value = categoriaDaUrl;
+
+    // Remove acentos, pra "salario" encontrar "Salário" e vice-versa
+    function removerAcentos(texto) {
+        return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
 
     onAuthStateChanged(auth, (usuario) => {
         if (!usuario) {
@@ -83,11 +92,11 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
-        const textoBuscado = filtroTexto.value.trim().toLowerCase();
+        const textoBuscado = removerAcentos(filtroTexto.value.trim().toLowerCase());
         if (textoBuscado) {
             filtrados = filtrados.filter((documento) => {
                 const dados = documento.data();
-                const campos = [dados.descricao, dados.categoria, dados.meta].filter(Boolean).join(" ").toLowerCase();
+                const campos = removerAcentos([dados.descricao, dados.categoria, dados.meta].filter(Boolean).join(" ").toLowerCase());
                 return campos.includes(textoBuscado);
             });
         }

@@ -80,8 +80,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const graficoDonut = document.getElementById("grafico-donut");
     const legendaGrafico = document.getElementById("legenda-grafico");
     const graficoVazio = document.getElementById("grafico-vazio");
-    const chipFiltroCategoria = document.getElementById("chip-filtro-categoria");
-    const botaoCompartilharResumo = document.getElementById("botao-compartilhar-resumo");
 
     const botaoAbrirModal = document.getElementById("botao-abrir-modal");
     const botaoFecharModal = document.getElementById("botao-fechar-modal");
@@ -133,8 +131,6 @@ document.addEventListener("DOMContentLoaded", function () {
     let pararDeEscutarSalario = null;
     let salarioPadrao = 0;
     let mapaOrcamentos = {}; // {categoria: limite}
-    let categoriaFiltroGrafico = null; // nome clicado no gráfico, ou null (sem filtro)
-    let ultimosDocumentosDoMes = []; // guarda os documentos crus, pra poder reaplicar o filtro sem nova consulta
     let primeiroNome = "";
     let idEmEdicao = null; // null = criando novo | string = editando esse lançamento
     let saldoAtualDoMes = 0; // usado pra impedir guardar mais do que o saldo permite
@@ -218,7 +214,6 @@ document.addEventListener("DOMContentLoaded", function () {
             mesSelecionado = novaData;
         }
 
-        categoriaFiltroGrafico = null; // muda de mês, reseta o filtro do gráfico
         atualizarRotuloMes();
         escutarLancamentosDoMes();
         escutarPendenciasDoMes();
@@ -1158,7 +1153,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const comparacaoMesAnteriorEl = document.getElementById("comparacao-mes-anterior");
     let gastosMesAnterior = null;
     let totalGastosAtual = 0;
-    let totalGanhosAtual = 0;
 
     async function buscarGastosMesAnterior() {
         const anoAnterior = mesSelecionado.getMonth() === 0 ? mesSelecionado.getFullYear() - 1 : mesSelecionado.getFullYear();
@@ -1230,40 +1224,11 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
         pararDeEscutar = onSnapshot(consulta, (snapshot) => {
-            ultimosDocumentosDoMes = snapshot.docs;
-            renderizarListaComFiltro();
+            renderizarLista(snapshot.docs);
             calcularTotais(snapshot.docs);
             renderizarGrafico(snapshot.docs);
         });
     }
-
-    // Aplica o filtro de categoria (se tiver um ativo, escolhido no gráfico)
-    // antes de mandar renderizar a lista de verdade
-    function renderizarListaComFiltro() {
-        if (!categoriaFiltroGrafico) {
-            chipFiltroCategoria.hidden = true;
-            renderizarLista(ultimosDocumentosDoMes);
-            return;
-        }
-
-        chipFiltroCategoria.hidden = false;
-        chipFiltroCategoria.textContent = `Filtrando: ${categoriaFiltroGrafico} ✕`;
-
-        const filtrado = ultimosDocumentosDoMes.filter((documento) => {
-            const dados = documento.data();
-            if (categoriaFiltroGrafico === "Guardado") {
-                return dados.categoria === "Guardar Dinheiro" && dados.valor > 0;
-            }
-            return dados.categoria === categoriaFiltroGrafico && dados.tipo === "gasto";
-        });
-
-        renderizarLista(filtrado);
-    }
-
-    chipFiltroCategoria.addEventListener("click", () => {
-        categoriaFiltroGrafico = null;
-        renderizarListaComFiltro();
-    });
 
     // ==========================================================================
     // BANNER DE SALÁRIO — consulta própria, olhando pro mês corrente de
@@ -1484,7 +1449,6 @@ document.addEventListener("DOMContentLoaded", function () {
         totalSaldoEl.textContent = formatarMoeda(saldoAtualDoMes);
 
         totalGastosAtual = totalGastos;
-        totalGanhosAtual = totalGanhos;
         atualizarComparacaoMesAnterior();
         atualizarIndicadorMesFechado();
     }
@@ -1574,10 +1538,7 @@ document.addEventListener("DOMContentLoaded", function () {
             circulo.setAttribute("stroke-width", "16");
             circulo.setAttribute("stroke-dasharray", `${comprimentoFatia} ${circunferencia - comprimentoFatia}`);
             circulo.setAttribute("stroke-dashoffset", String(-deslocamentoAcumulado));
-            circulo.addEventListener("click", () => {
-                categoriaFiltroGrafico = item.nome;
-                renderizarListaComFiltro();
-            });
+            circulo.addEventListener("click", () => irParaExtratoFiltrado(item.nome));
             graficoDonut.appendChild(circulo);
 
             deslocamentoAcumulado += comprimentoFatia;
@@ -1606,51 +1567,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 <span class="percentual-legenda">${Math.round(percentual * 100)}%</span>
                 ${barraHtml}
             `;
-            itemLegenda.addEventListener("click", () => {
-                categoriaFiltroGrafico = item.nome;
-                renderizarListaComFiltro();
-            });
+            itemLegenda.addEventListener("click", () => irParaExtratoFiltrado(item.nome));
             legendaGrafico.appendChild(itemLegenda);
         });
     }
 
-    // ==========================================================================
-    // COMPARTILHAR RESUMO DO MÊS
-    // ==========================================================================
-    botaoCompartilharResumo.addEventListener("click", async () => {
-        const nomeDoMes = `${NOMES_MESES[mesSelecionado.getMonth()]} de ${mesSelecionado.getFullYear()}`;
-
-        const totalGuardadoNoMes = ultimosDocumentosDoMes.reduce((soma, documento) => {
-            const dados = documento.data();
-            if (dados.categoria === "Guardar Dinheiro" && dados.valor > 0) return soma + dados.valor;
-            return soma;
-        }, 0);
-
-        const texto = [
-            `📊 Resumo de ${nomeDoMes}`,
-            ``,
-            `Ganhos: ${formatarMoeda(totalGanhosAtual)}`,
-            `Gastos: ${formatarMoeda(totalGastosAtual)}`,
-            `Guardado: ${formatarMoeda(totalGuardadoNoMes)}`,
-            `Saldo: ${formatarMoeda(saldoAtualDoMes)}`,
-            ``,
-            `Gerado pelo app Finanças`
-        ].join("\n");
-
-        if (navigator.share) {
-            try {
-                await navigator.share({ text: texto });
-            } catch (erro) {
-                // A pessoa cancelou o compartilhamento — não faz nada, sem mostrar erro
-            }
-        } else {
-            try {
-                await navigator.clipboard.writeText(texto);
-                mostrarToast("Resumo copiado! Cole onde quiser.");
-            } catch (erro) {
-                window.alert(texto);
-            }
-        }
-    });
+    // Leva pro Extrato Completo já filtrado pelo mês em exibição + a
+    // categoria clicada no gráfico (mostra tudo, sem o limite de 4 itens
+    // da lista resumida da tela inicial)
+    function irParaExtratoFiltrado(nomeCategoria) {
+        const nomeReal = nomeCategoria === "Guardado" ? "Guardar Dinheiro" : nomeCategoria;
+        const mesParaUrl = String(mesSelecionado.getMonth() + 1).padStart(2, "0");
+        const url = `extrato.html?mes=${mesSelecionado.getFullYear()}-${mesParaUrl}&categoria=${encodeURIComponent(nomeReal)}`;
+        window.location.href = url;
+    }
 
 });
