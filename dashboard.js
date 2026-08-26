@@ -562,7 +562,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     botaoSalvarEditarCategoria.addEventListener("click", async () => {
         const novoNome = campoNovoNomeCategoria.value.trim();
-        const novoLimite = parseFloat(campoLimiteCategoria.value);
+        const novoLimite = paraNumero(campoLimiteCategoria.value);
         mensagemAvisoEditarCategoria.classList.remove("visivel");
 
         if (!novoNome) {
@@ -654,7 +654,9 @@ document.addEventListener("DOMContentLoaded", function () {
         campoCategoriaWrapper.hidden = false;
         campoCategoria.required = true;
         campoNovaCategoriaWrapper.hidden = true;
+        campoNovaCategoria.required = false; // sem isso, ficava "grudado" de uma vez que criou categoria nova antes
         campoParcelasWrapper.hidden = true;
+        campoParcelas.required = false; // mesmo problema, grudava depois de usar "Parcelar" uma vez
         campoFixo.checked = false;
         campoFixo.disabled = false;
         campoParcelado.checked = false;
@@ -693,6 +695,8 @@ document.addEventListener("DOMContentLoaded", function () {
         campoDescricao.value = dados.descricao || "";
         campoData.value = formatarDataParaCampo(dados.data.toDate());
         campoNovaCategoriaWrapper.hidden = true;
+        campoNovaCategoria.required = false;
+        campoParcelas.required = false;
 
         fundoModal.classList.add("aberto");
     }
@@ -821,7 +825,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const total = parseFloat(campoValor.value);
+        const total = paraNumero(campoValor.value);
         const numeroParcelas = parseInt(campoParcelas.value, 10);
 
         if (!total || total <= 0 || !numeroParcelas || numeroParcelas < 2) {
@@ -874,7 +878,7 @@ document.addEventListener("DOMContentLoaded", function () {
         evento.preventDefault();
         esconderAviso();
 
-        const valorDigitado = parseFloat(campoValor.value);
+        const valorDigitado = paraNumero(campoValor.value);
         if (!valorDigitado || valorDigitado <= 0) {
             mostrarAviso("Digita um valor maior que zero.");
             return;
@@ -1109,12 +1113,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 ? `<button class="link-cancelar-recorrencia" data-grupo="${dados.grupoId}">Cancelar recorrência</button>`
                 : "";
 
+            // Se já foi paga, mostra quando exatamente isso aconteceu — o campo
+            // pagoEm só existe a partir de agora; pendências marcadas como pagas
+            // antes dessa atualização simplesmente não mostram essa linha
+            let textoPagoEm = "";
+            if (dados.pago && dados.pagoEm) {
+                const dataPagamento = dados.pagoEm.toDate();
+                const dataFormatadaPagamento = dataPagamento.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+                const horaFormatadaPagamento = dataPagamento.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false });
+                textoPagoEm = `<div class="texto-pago-em">Pago em ${dataFormatadaPagamento} às ${horaFormatadaPagamento}</div>`;
+            }
+
             const item = document.createElement("li");
             item.className = "item-conta";
             item.innerHTML = `
                 <div class="info-conta">
                     <div class="nome-conta">${dados.descricao}${badgeParcela}${badgeQuaseAcabando}</div>
                     <div class="meta-conta">${dados.categoria} · Dia ${dados.diaDoMes}</div>
+                    ${textoPagoEm}
                     ${linkCancelar}
                 </div>
                 <span class="valor-conta">${formatarMoeda(dados.valor)}</span>
@@ -1191,7 +1207,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 await deleteDoc(doc(db, "usuarios", uidAtual, "lancamentos", dadosAtuais.lancamentoId)).catch(() => {});
             }
 
-            await updateDoc(referenciaPendencia, { pago: false, lancamentoId: null });
+            await updateDoc(referenciaPendencia, { pago: false, lancamentoId: null, pagoEm: null });
             return;
         }
 
@@ -1221,7 +1237,7 @@ document.addEventListener("DOMContentLoaded", function () {
             criadoEm: serverTimestamp()
         });
 
-        await updateDoc(referenciaPendencia, { pago: true, lancamentoId: novoLancamento.id });
+        await updateDoc(referenciaPendencia, { pago: true, lancamentoId: novoLancamento.id, pagoEm: serverTimestamp() });
     });
 
     // ==========================================================================
@@ -1337,7 +1353,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     botaoConfirmarSalario.addEventListener("click", async () => {
-        const valor = parseFloat(valorSalarioBanner.value);
+        const valor = paraNumero(valorSalarioBanner.value);
         if (!valor || valor <= 0) return;
 
         botaoConfirmarSalario.disabled = true;
@@ -1554,6 +1570,13 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================================================
     function formatarMoeda(valor) {
         return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
+    // Converte texto digitado em número, aceitando tanto vírgula quanto ponto
+    // como separador decimal — os campos de valor viraram type="text" (não
+    // "number") justamente pra vírgula funcionar, então precisam disso aqui
+    function paraNumero(texto) {
+        return parseFloat(String(texto).replace(",", "."));
     }
 
     // ==========================================================================

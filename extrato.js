@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (filtroValor.value) {
-            const valorBuscado = parseFloat(filtroValor.value);
+            const valorBuscado = paraNumero(filtroValor.value);
             if (!isNaN(valorBuscado)) {
                 filtrados = filtrados.filter((documento) => {
                     const valorLancamento = documento.data().valor;
@@ -192,6 +192,12 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
     });
+
+    // Converte texto digitado em número, aceitando vírgula ou ponto como
+    // separador decimal (os campos de valor viraram type="text" pra isso)
+    function paraNumero(texto) {
+        return parseFloat(String(texto).replace(",", "."));
+    }
 
     function formatarMoeda(valor) {
         return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

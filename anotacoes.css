@@ -124,6 +124,12 @@
     margin-top: 2px;
 }
 
+.texto-pago-em {
+    font-size: 11.5px;
+    color: var(--sucesso);
+    margin-top: 3px;
+}
+
 .link-cancelar-recorrencia {
     display: block;
     background: none;

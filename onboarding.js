@@ -1,5 +1,5 @@
 import { auth, db } from "./firebase-config.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const nome = campoNome.value.trim();
         const dataNascimento = campoNascimento.value;
-        const salarioPadrao = parseFloat(campoSalario.value);
+        const salarioPadrao = parseFloat(campoSalario.value.replace(",", "."));
 
         // Pega todas as caixinhas marcadas e monta uma lista com os valores delas
         const checkboxesMarcados = listaProfissoes.querySelectorAll("input[type=checkbox]:checked");
@@ -88,6 +88,19 @@ document.addEventListener("DOMContentLoaded", function () {
             window.location.href = "dashboard.html";
 
         } catch (erro) {
+            // "permission-denied" aqui normalmente significa que a sessão salva
+            // no aparelho não corresponde mais a uma conta de verdade (ex: a
+            // conta foi apagada direto no Firebase, mas o navegador ainda
+            // "lembrava" de um login antigo) — desloga e explica, em vez de
+            // deixar a pessoa perdida numa tela de cadastro que nunca vai salvar
+            if (erro.code === "permission-denied") {
+                mensagemAviso.textContent = "Sua sessão expirou ou não é mais válida. Redirecionando pro login...";
+                mensagemAviso.classList.add("visivel");
+                await signOut(auth);
+                setTimeout(() => { window.location.href = "index.html"; }, 2000);
+                return;
+            }
+
             mensagemAviso.textContent = "Não deu pra salvar agora. Tenta de novo.";
             mensagemAviso.classList.add("visivel");
             botaoEnviar.disabled = false;

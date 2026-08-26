@@ -193,7 +193,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     botaoSalvarMeta.addEventListener("click", async () => {
         const nome = campoNomeMeta.value.trim();
-        const valor = parseFloat(campoValorMeta.value);
+        const valor = paraNumero(campoValorMeta.value);
         mensagemAvisoMeta.classList.remove("visivel");
 
         if (!nome) {
@@ -250,7 +250,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     botaoConfirmarRetirada.addEventListener("click", async () => {
-        const valor = parseFloat(campoValorRetirada.value);
+        const valor = paraNumero(campoValorRetirada.value);
         mensagemAvisoRetirada.classList.remove("visivel");
 
         if (!valor || valor <= 0) {
@@ -294,6 +294,12 @@ document.addEventListener("DOMContentLoaded", function () {
         spinnerRetirada.hidden = true;
         fecharModalRetirada();
     });
+
+    // Converte texto digitado em número, aceitando vírgula ou ponto como
+    // separador decimal (os campos de valor viraram type="text" pra isso)
+    function paraNumero(texto) {
+        return parseFloat(String(texto).replace(",", "."));
+    }
 
     function formatarMoeda(valor) {
         return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const nome = campoNome.value.trim();
         const dataNascimento = campoNascimento.value;
-        const salarioPadrao = parseFloat(campoSalario.value);
+        const salarioPadrao = parseFloat(campoSalario.value.replace(",", "."));
         const profissoes = [...listaProfissoes.querySelectorAll("input[type=checkbox]:checked")].map((c) => c.value);
 
         if (!nome || !dataNascimento || isNaN(salarioPadrao)) {

@@ -318,7 +318,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     botaoSalvarAnotacao.addEventListener("click", async () => {
         const nome = campoNomeConta.value.trim();
-        const valor = parseFloat(campoValorConta.value);
+        const valor = paraNumero(campoValorConta.value);
         const temVencimento = !campoSemVencimento.checked;
         const dia = temVencimento ? parseInt(campoDiaVencimento.value, 10) : null;
         mensagemAvisoAnotacao.classList.remove("visivel");
@@ -367,6 +367,12 @@ document.addEventListener("DOMContentLoaded", function () {
         spinnerAnotacao.hidden = true;
         fecharModalAnotacao();
     });
+
+    // Converte texto digitado em número, aceitando vírgula ou ponto como
+    // separador decimal (os campos de valor viraram type="text" pra isso)
+    function paraNumero(texto) {
+        return parseFloat(String(texto).replace(",", "."));
+    }
 
     function formatarMoeda(valor) {
         return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
