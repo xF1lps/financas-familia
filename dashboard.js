@@ -639,6 +639,22 @@ document.addEventListener("DOMContentLoaded", function () {
                     await lote.commit();
                 }
 
+                // 2b) Faz o mesmo nas pendências (gasto fixo/parcelado) que
+                // usavam o nome velho — senão elas continuam mostrando a
+                // categoria antiga em "Pagamentos Pendentes", mesmo depois
+                // de renomear
+                const referenciaPendencias = collection(db, "usuarios", uidAtual, "pendencias");
+                const consultaPendenciasAntigas = query(referenciaPendencias, where("categoria", "==", categoriaEmEdicaoNomeAntigo));
+                const pendenciasAntigas = await getDocs(consultaPendenciasAntigas);
+
+                if (!pendenciasAntigas.empty) {
+                    const loteAntigo = writeBatch(db);
+                    pendenciasAntigas.forEach((documento) => {
+                        loteAntigo.update(documento.ref, { categoria: novoNome });
+                    });
+                    await loteAntigo.commit();
+                }
+
                 // 3) "Move" o orçamento configurado (só existe pro lado Gasto —
                 // Firestore não deixa renomear o ID de um documento, então
                 // apaga o antigo e cria um novo com o nome atualizado)
