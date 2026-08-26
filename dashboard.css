@@ -641,7 +641,77 @@ body {
 }
 
 .grafico-donut circle {
-    transition: stroke-dasharray 0.5s ease;
+    transition: stroke-dasharray 0.5s ease, opacity 0.2s ease;
+    cursor: pointer;
+}
+
+.item-legenda {
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background-color 0.15s ease;
+}
+
+.item-legenda:hover {
+    background-color: var(--surface-alta);
+}
+
+.chip-filtro-categoria {
+    background-color: rgba(217, 119, 87, 0.15);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--fonte-corpo);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.chip-filtro-categoria[hidden] {
+    display: none;
+}
+
+.indicador-mes-fechado {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-left: -6px;
+    flex-shrink: 0;
+}
+
+.indicador-mes-fechado[hidden] {
+    display: none;
+}
+
+.indicador-mes-fechado.positivo {
+    background-color: var(--sucesso);
+}
+
+.indicador-mes-fechado.negativo {
+    background-color: var(--gasto-cor);
+}
+
+.botao-compartilhar-resumo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid var(--borda);
+    color: var(--text-muted);
+    font-family: var(--fonte-corpo);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: all 0.2s ease;
+}
+
+.botao-compartilhar-resumo:hover {
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 .legenda-grafico {
