@@ -2,7 +2,7 @@ import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
     collection, addDoc, updateDoc, setDoc, deleteDoc, doc, getDoc, getDocs,
-    query, where, orderBy, onSnapshot, Timestamp, serverTimestamp, writeBatch
+    query, where, onSnapshot, Timestamp, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const CATEGORIAS_PADRAO = {
@@ -216,6 +216,7 @@ document.addEventListener("DOMContentLoaded", function () {
         await carregarCategoriasCustomizadas();
         await carregarOrcamentos();
         await carregarMetas();
+        await migrarLancamentosAntigos();
         atualizarRotuloMes();
         escutarLancamentosDoMes();
         escutarPendenciasDoMes();
@@ -328,6 +329,33 @@ document.addEventListener("DOMContentLoaded", function () {
     // saldo por esquecimento
     // ==========================================================================
     let mesMaisAntigoComPendencia = null;
+
+    // ==========================================================================
+    // CORREÇÃO AUTOMÁTICA — lançamentos criados antes da separação entre
+    // "data exibida" e "mês que conta" (mesReferencia) não têm esse campo
+    // ainda. Roda uma vez por login: qualquer lançamento sem mesReferencia
+    // recebe um, calculado a partir da própria data dele — assim, nenhum
+    // lançamento antigo "some" de nenhuma tela depois dessa atualização.
+    // ==========================================================================
+    async function migrarLancamentosAntigos() {
+        const referencia = collection(db, "usuarios", uidAtual, "lancamentos");
+        const todosOsLancamentos = await getDocs(referencia);
+
+        const semMesReferencia = todosOsLancamentos.docs.filter((documento) => !documento.data().mesReferencia);
+        if (semMesReferencia.length === 0) return;
+
+        // writeBatch aguenta até 500 operações — divide em pedaços por
+        // segurança, caso alguém tenha uma quantidade grande de lançamentos
+        for (let inicio = 0; inicio < semMesReferencia.length; inicio += 450) {
+            const pedaco = semMesReferencia.slice(inicio, inicio + 450);
+            const lote = writeBatch(db);
+            pedaco.forEach((documento) => {
+                const dataDoLancamento = documento.data().data.toDate();
+                lote.update(documento.ref, { mesReferencia: mesReferenciaString(dataDoLancamento) });
+            });
+            await lote.commit();
+        }
+    }
 
     async function verificarPendenciasAntigas() {
         const referencia = collection(db, "usuarios", uidAtual, "pendencias");
@@ -873,6 +901,12 @@ document.addEventListener("DOMContentLoaded", function () {
         return `${ano}-${mes}-${dia}`;
     }
 
+    // Formata pro padrão "AAAA-MM" — usado no campo "mesReferencia", que
+    // decide EM QUAL MÊS um lançamento conta (separado da data exibida nele)
+    function mesReferenciaString(data) {
+        return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`;
+    }
+
     atalhoHoje.addEventListener("click", () => {
         campoData.value = formatarDataParaCampo(new Date());
     });
@@ -1117,6 +1151,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     categoria: categoriaFinal,
                     descricao: descricaoBase,
                     data: Timestamp.fromDate(dataEscolhida),
+                    mesReferencia: mesReferenciaString(mesSelecionado),
                     criadoEm: serverTimestamp(),
                     ...(modoGuardar ? { meta: metaFinal } : {})
                 });
@@ -1222,7 +1257,15 @@ document.addEventListener("DOMContentLoaded", function () {
         listaPendencias.innerHTML = "";
         pendenciasVazio.hidden = documentos.length > 0;
 
-        documentos.forEach((documento) => {
+        // Gasto Fixo aparece sempre antes de Parcelado, pra não ficar
+        // misturado — dentro de cada grupo, mantém a ordem que já veio
+        const documentosOrdenados = [...documentos].sort((a, b) => {
+            const ehFixoA = a.data().origem !== "parcelado" ? 0 : 1;
+            const ehFixoB = b.data().origem !== "parcelado" ? 0 : 1;
+            return ehFixoA - ehFixoB;
+        });
+
+        documentosOrdenados.forEach((documento) => {
             const dados = documento.data();
             const parcelasRestantes = dados.origem === "parcelado" ? dados.totalParcelas - dados.numeroParcela : null;
             const badgeParcela = dados.origem === "parcelado"
@@ -1424,6 +1467,7 @@ document.addEventListener("DOMContentLoaded", function () {
             categoria: dadosPendencia.categoria,
             descricao: dadosPendencia.descricao,
             data: Timestamp.fromDate(dataDoPagamento),
+            mesReferencia: dadosPendencia.mesReferencia,
             criadoEm: serverTimestamp()
         });
 
@@ -1440,16 +1484,10 @@ document.addEventListener("DOMContentLoaded", function () {
     async function buscarGastosMesAnterior() {
         const anoAnterior = mesSelecionado.getMonth() === 0 ? mesSelecionado.getFullYear() - 1 : mesSelecionado.getFullYear();
         const mesAnteriorIndice = mesSelecionado.getMonth() === 0 ? 11 : mesSelecionado.getMonth() - 1;
-
-        const inicio = new Date(anoAnterior, mesAnteriorIndice, 1);
-        const fim = new Date(anoAnterior, mesAnteriorIndice + 1, 1);
+        const mesReferenciaAnterior = mesReferenciaString(new Date(anoAnterior, mesAnteriorIndice, 1));
 
         const referencia = collection(db, "usuarios", uidAtual, "lancamentos");
-        const consulta = query(
-            referencia,
-            where("data", ">=", Timestamp.fromDate(inicio)),
-            where("data", "<", Timestamp.fromDate(fim))
-        );
+        const consulta = query(referencia, where("mesReferencia", "==", mesReferenciaAnterior));
 
         const resultado = await getDocs(consulta);
         let total = 0;
@@ -1495,21 +1533,23 @@ document.addEventListener("DOMContentLoaded", function () {
     function escutarLancamentosDoMes() {
         if (pararDeEscutar) pararDeEscutar();
 
-        const inicioMes = new Date(mesSelecionado.getFullYear(), mesSelecionado.getMonth(), 1);
-        const inicioProximoMes = new Date(mesSelecionado.getFullYear(), mesSelecionado.getMonth() + 1, 1);
+        const mesReferenciaAtual = mesReferenciaString(mesSelecionado);
 
         const referencia = collection(db, "usuarios", uidAtual, "lancamentos");
-        const consulta = query(
-            referencia,
-            where("data", ">=", Timestamp.fromDate(inicioMes)),
-            where("data", "<", Timestamp.fromDate(inicioProximoMes)),
-            orderBy("data", "desc")
-        );
+        // Filtra por "mesReferencia" (o mês que a pessoa estava navegando na
+        // hora de criar), não pela data exata — são coisas separadas de
+        // propósito. Sem orderBy aqui (evitaria precisar de índice composto,
+        // já que ordenar por "data" enquanto filtra por "mesReferencia" são
+        // campos diferentes) — ordena do lado do app mesmo, é rapidinho.
+        const consulta = query(referencia, where("mesReferencia", "==", mesReferenciaAtual));
 
         pararDeEscutar = onSnapshot(consulta, (snapshot) => {
-            renderizarLista(snapshot.docs);
-            calcularTotais(snapshot.docs);
-            renderizarGrafico(snapshot.docs);
+            const documentosOrdenados = [...snapshot.docs].sort(
+                (a, b) => b.data().data.toDate() - a.data().data.toDate()
+            );
+            renderizarLista(documentosOrdenados);
+            calcularTotais(documentosOrdenados);
+            renderizarGrafico(documentosOrdenados);
         });
     }
 
@@ -1554,6 +1594,7 @@ document.addEventListener("DOMContentLoaded", function () {
             categoria: "Salário",
             descricao: "",
             data: Timestamp.fromDate(new Date()),
+            mesReferencia: mesReferenciaString(new Date()),
             criadoEm: serverTimestamp()
         });
 
@@ -1643,6 +1684,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 categoria: dadosDoItem.categoria,
                 descricao: dadosDoItem.descricao || "",
                 data: Timestamp.fromDate(new Date()), // duplicado sempre cai em "hoje"
+                mesReferencia: mesReferenciaString(mesSelecionado),
                 criadoEm: serverTimestamp()
             });
 
@@ -1680,6 +1722,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         categoria: dadosParaDesfazer.categoria,
                         descricao: dadosParaDesfazer.descricao || "",
                         data: dadosParaDesfazer.data,
+                        mesReferencia: dadosParaDesfazer.mesReferencia || mesReferenciaString(dadosParaDesfazer.data.toDate()),
                         criadoEm: serverTimestamp()
                     });
                 });

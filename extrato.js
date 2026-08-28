@@ -103,10 +103,15 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
         if (filtroMes.value) {
-            const [anoFiltro, mesFiltro] = filtroMes.value.split("-").map(Number);
             filtrados = filtrados.filter((documento) => {
-                const dataObj = documento.data().data.toDate();
-                return dataObj.getFullYear() === anoFiltro && (dataObj.getMonth() + 1) === mesFiltro;
+                const dados = documento.data();
+                // Usa "mesReferencia" quando existe (é o que decide em qual
+                // mês o lançamento conta, separado da data exibida nele).
+                // Lançamentos antigos, de antes dessa mudança, ainda não têm
+                // esse campo — pra esses, cai de volta pra olhar a data mesmo
+                const mesDoLancamento = dados.mesReferencia
+                    || `${dados.data.toDate().getFullYear()}-${String(dados.data.toDate().getMonth() + 1).padStart(2, "0")}`;
+                return mesDoLancamento === filtroMes.value;
             });
         }
 
