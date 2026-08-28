@@ -1,8 +1,8 @@
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-    collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot,
-    query, where, Timestamp, serverTimestamp
+    collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, getDocs, writeBatch,
+    query, where, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const NOMES_MESES = [
@@ -71,20 +71,48 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let uidAtual = null;
     let mesSelecionado = new Date();
+
+    // Formata pro padrão "AAAA-MM" — mesmo campo usado nos lançamentos pra
+    // decidir em qual mês eles contam (separado da data exibida neles)
+    function mesReferenciaString(data) {
+        return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`;
+    }
     let modoSelecao = false;
     let idEmEdicao = null; // null = criando novo | string = editando esse lembrete
     let ultimoTotalAnotacoes = 0; // usado pra recalcular o saldo quando o saldo real mudar
 
-    onAuthStateChanged(auth, (usuario) => {
+    onAuthStateChanged(auth, async (usuario) => {
         if (!usuario) {
             window.location.href = "index.html";
             return;
         }
         uidAtual = usuario.uid;
+        await migrarLancamentosAntigos();
         atualizarRotuloMes();
         escutarAnotacoesDoMes();
         escutarSaldoRealDoMes();
     });
+
+    // Mesma correção automática que roda no dashboard — garante que essa
+    // página funcione certinho mesmo se for a primeira que a pessoa abrir
+    // depois de logar (sem passar pela tela inicial antes)
+    async function migrarLancamentosAntigos() {
+        const referencia = collection(db, "usuarios", uidAtual, "lancamentos");
+        const todosOsLancamentos = await getDocs(referencia);
+
+        const semMesReferencia = todosOsLancamentos.docs.filter((documento) => !documento.data().mesReferencia);
+        if (semMesReferencia.length === 0) return;
+
+        for (let inicio = 0; inicio < semMesReferencia.length; inicio += 450) {
+            const pedaco = semMesReferencia.slice(inicio, inicio + 450);
+            const lote = writeBatch(db);
+            pedaco.forEach((documento) => {
+                const dataDoLancamento = documento.data().data.toDate();
+                lote.update(documento.ref, { mesReferencia: mesReferenciaString(dataDoLancamento) });
+            });
+            await lote.commit();
+        }
+    }
 
     // ==========================================================================
     // NAVEGAÇÃO ENTRE MESES
@@ -121,15 +149,10 @@ document.addEventListener("DOMContentLoaded", function () {
     function escutarSaldoRealDoMes() {
         if (pararDeEscutarSaldoReal) pararDeEscutarSaldoReal();
 
-        const inicioMes = new Date(mesSelecionado.getFullYear(), mesSelecionado.getMonth(), 1);
-        const inicioProximoMes = new Date(mesSelecionado.getFullYear(), mesSelecionado.getMonth() + 1, 1);
+        const mesReferenciaAtual = mesReferenciaString(mesSelecionado);
 
         const referencia = collection(db, "usuarios", uidAtual, "lancamentos");
-        const consulta = query(
-            referencia,
-            where("data", ">=", Timestamp.fromDate(inicioMes)),
-            where("data", "<", Timestamp.fromDate(inicioProximoMes))
-        );
+        const consulta = query(referencia, where("mesReferencia", "==", mesReferenciaAtual));
 
         pararDeEscutarSaldoReal = onSnapshot(consulta, (snapshot) => {
             let totalGanhos = 0;

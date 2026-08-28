@@ -1544,8 +1544,18 @@ document.addEventListener("DOMContentLoaded", function () {
         const consulta = query(referencia, where("mesReferencia", "==", mesReferenciaAtual));
 
         pararDeEscutar = onSnapshot(consulta, (snapshot) => {
+            // Ordena pela ORDEM REAL que a pessoa lançou (criadoEm), não pela
+            // data escolhida — assim "Lançamentos recentes" mostra de verdade
+            // os últimos 4 que você acabou de criar, consistente com o extrato
             const documentosOrdenados = [...snapshot.docs].sort(
-                (a, b) => b.data().data.toDate() - a.data().data.toDate()
+                (a, b) => {
+                    // Reserva: logo depois de criar um lançamento, o criadoEm
+                    // pode ficar momentaneamente vazio até o servidor
+                    // confirmar — nesse instante raro, cai de volta pra "data"
+                    const dataA = a.data().criadoEm?.toDate() || a.data().data.toDate();
+                    const dataB = b.data().criadoEm?.toDate() || b.data().data.toDate();
+                    return dataB - dataA;
+                }
             );
             renderizarLista(documentosOrdenados);
             calcularTotais(documentosOrdenados);
