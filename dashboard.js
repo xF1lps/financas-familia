@@ -853,15 +853,12 @@ document.addEventListener("DOMContentLoaded", function () {
         campoDescricaoWrapper.hidden = modoGuardar;
         campoDescricao.required = false;
 
-        // A data padrão respeita o mês que você está navegando — se você
-        // pulou pra setembro e clica no +, o lançamento já nasce sugerido
-        // pra setembro, não pro dia real de hoje (que podia ser agosto)
+        // A data padrão é sempre a de hoje de verdade — não importa qual mês
+        // você esteja navegando na tela. Se quiser lançar em outra data,
+        // você troca manualmente no campo, e o app respeita exatamente o
+        // que for escolhido ali.
         const hoje = new Date();
-        const estaNoMesAtual = mesSelecionado.getFullYear() === hoje.getFullYear()
-            && mesSelecionado.getMonth() === hoje.getMonth();
-        const dataPadrao = estaNoMesAtual ? hoje : new Date(mesSelecionado.getFullYear(), mesSelecionado.getMonth(), 1);
-
-        campoData.value = formatarDataParaCampo(dataPadrao);
+        campoData.value = formatarDataParaCampo(hoje);
         campoValor.focus();
     }
 
