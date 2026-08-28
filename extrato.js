@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function escutarTodosOsLancamentos() {
         const referencia = collection(db, "usuarios", uidAtual, "lancamentos");
-        const consulta = query(referencia, orderBy("data", "desc"));
+        const consulta = query(referencia, orderBy("criadoEm", "desc"));
 
         onSnapshot(consulta, (snapshot) => {
             todosOsLancamentos = snapshot.docs;
