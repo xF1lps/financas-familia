@@ -131,6 +131,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const campoNovaCategoria = document.getElementById("campo-nova-categoria");
     const campoVencimentoNovaCategoriaWrapper = document.getElementById("campo-vencimento-nova-categoria-wrapper");
     const campoVencimentoNovaCategoria = document.getElementById("campo-vencimento-nova-categoria");
+    const campoBancoWrapper = document.getElementById("campo-banco-wrapper");
+    const campoBanco = document.getElementById("campo-banco");
+    const campoNovoBancoWrapper = document.getElementById("campo-novo-banco-wrapper");
+    const campoNovoBanco = document.getElementById("campo-novo-banco");
     const campoDescricaoWrapper = document.getElementById("campo-descricao-wrapper");
     const campoDescricao = document.getElementById("campo-descricao");
     const campoData = document.getElementById("campo-data");
@@ -177,6 +181,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let tipoSelecionado = "gasto";
     let categoriasCustomizadas = { gasto: [], ganho: [] };
     let metasCustomizadas = []; // [{nome, id}] — usadas só no fluxo de Guardar
+    let bancosCustomizados = []; // [{nome, id}] — onde o dinheiro guardado fica de verdade
     let pararDeEscutar = null;
     let pararDeEscutarSalario = null;
     let salarioPadrao = 0;
@@ -216,6 +221,7 @@ document.addEventListener("DOMContentLoaded", function () {
         await carregarCategoriasCustomizadas();
         await carregarOrcamentos();
         await carregarMetas();
+        await carregarBancos();
         await migrarLancamentosAntigos();
         atualizarRotuloMes();
         escutarLancamentosDoMes();
@@ -504,6 +510,16 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    async function carregarBancos() {
+        const referencia = collection(db, "usuarios", uidAtual, "bancos");
+        const resultado = await getDocs(referencia);
+
+        bancosCustomizados = [];
+        resultado.forEach((documento) => {
+            bancosCustomizados.push({ nome: documento.data().nome, id: documento.id });
+        });
+    }
+
     function popularSelectCategorias(categoriaAtual) {
         campoCategoria.innerHTML = "";
 
@@ -568,6 +584,29 @@ document.addEventListener("DOMContentLoaded", function () {
         campoCategoria.appendChild(opcaoNova);
     }
 
+    // O banco tem um select PRÓPRIO (não reaproveita o de categoria/meta),
+    // porque no modo Guardar os dois campos aparecem juntos na tela
+    function popularSelectBancos() {
+        campoBanco.innerHTML = "";
+
+        const opcaoSemBanco = document.createElement("option");
+        opcaoSemBanco.value = "__sem_banco__";
+        opcaoSemBanco.textContent = "Sem banco específico";
+        campoBanco.appendChild(opcaoSemBanco);
+
+        bancosCustomizados.forEach((banco) => {
+            const opcao = document.createElement("option");
+            opcao.value = banco.nome;
+            opcao.textContent = banco.nome;
+            campoBanco.appendChild(opcao);
+        });
+
+        const opcaoNovo = document.createElement("option");
+        opcaoNovo.value = "__novo__";
+        opcaoNovo.textContent = "+ Novo banco";
+        campoBanco.appendChild(opcaoNovo);
+    }
+
     // Mostra a lixeira e o lápis só quando a categoria selecionada no momento
     // for uma que a própria pessoa criou (nunca nas fixas, tipo "Outros")
     function atualizarBotaoExcluirCategoria() {
@@ -584,6 +623,12 @@ document.addEventListener("DOMContentLoaded", function () {
         // Vencimento só faz sentido pro lado Gasto (é usado em gasto fixo/parcelado)
         campoVencimentoNovaCategoriaWrapper.hidden = !criandoNova || tipoSelecionado !== "gasto";
         atualizarBotaoExcluirCategoria();
+    });
+
+    campoBanco.addEventListener("change", () => {
+        const criandoNovo = campoBanco.value === "__novo__";
+        campoNovoBancoWrapper.hidden = !criandoNovo;
+        campoNovoBanco.required = criandoNovo;
     });
 
     botaoExcluirCategoria.addEventListener("click", async () => {
@@ -787,6 +832,9 @@ document.addEventListener("DOMContentLoaded", function () {
         campoNovaCategoria.required = false; // sem isso, ficava "grudado" de uma vez que criou categoria nova antes
         campoParcelasWrapper.hidden = true;
         campoParcelas.required = false; // mesmo problema, grudava depois de usar "Parcelar" uma vez
+        campoBancoWrapper.hidden = true;
+        campoNovoBancoWrapper.hidden = true;
+        campoNovoBanco.required = false;
         campoFixo.checked = false;
         campoFixo.disabled = false;
         campoParcelado.checked = false;
@@ -877,6 +925,13 @@ document.addEventListener("DOMContentLoaded", function () {
             rotuloNovaCategoria.textContent = "Nome da nova categoria";
             popularSelectCategorias();
         }
+
+        // O campo Banco só aparece no modo Guardar, junto com a Meta —
+        // representa ONDE o dinheiro fica de verdade (Nubank, Caixa, etc)
+        campoBancoWrapper.hidden = !modoGuardar;
+        campoNovoBancoWrapper.hidden = true;
+        campoNovoBanco.required = false;
+        if (modoGuardar) popularSelectBancos();
 
         campoDescricaoWrapper.hidden = modoGuardar;
         campoDescricao.required = false;
@@ -1026,6 +1081,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let categoriaFinal = campoCategoria.value;
         let metaFinal = null;
+        let bancoFinal = null;
 
         if (modoGuardar) {
             if (categoriaFinal === "__nova__") {
@@ -1041,6 +1097,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 metaFinal = categoriaFinal;
             }
             categoriaFinal = "Guardar Dinheiro";
+
+            if (campoBanco.value === "__novo__") {
+                const novoBanco = campoNovoBanco.value.trim();
+                if (!novoBanco) {
+                    mostrarAviso("Digita o nome do novo banco.");
+                    return;
+                }
+                bancoFinal = novoBanco;
+            } else if (campoBanco.value === "__sem_banco__") {
+                bancoFinal = null;
+            } else {
+                bancoFinal = campoBanco.value;
+            }
         } else if (categoriaFinal === "__nova__") {
             const nomeNovaCategoria = campoNovaCategoria.value.trim();
             if (!nomeNovaCategoria) {
@@ -1137,6 +1206,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 metasCustomizadas.push({ nome: metaFinal, id: referenciaMeta.id });
             }
 
+            if (modoGuardar && campoBanco.value === "__novo__") {
+                const referenciaBanco = await addDoc(collection(db, "usuarios", uidAtual, "bancos"), {
+                    nome: bancoFinal
+                });
+                bancosCustomizados.push({ nome: bancoFinal, id: referenciaBanco.id });
+            }
+
             const dataEscolhida = construirDataComHorarioReal(campoData.value);
             const descricaoBase = campoDescricao.value.trim();
 
@@ -1153,7 +1229,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     data: Timestamp.fromDate(dataEscolhida),
                     mesReferencia: mesReferenciaString(mesSelecionado),
                     criadoEm: serverTimestamp(),
-                    ...(modoGuardar ? { meta: metaFinal } : {})
+                    ...(modoGuardar ? { meta: metaFinal, banco: bancoFinal } : {})
                 });
             }
 

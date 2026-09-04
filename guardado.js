@@ -25,6 +25,19 @@ document.addEventListener("DOMContentLoaded", function () {
     const spinnerMeta = botaoSalvarMeta.querySelector(".spinner-botao");
     const botaoRemoverMeta = document.getElementById("botao-remover-meta");
 
+    const listaBancos = document.getElementById("lista-bancos");
+    const bancosVazio = document.getElementById("bancos-vazio");
+    const botaoAbrirNovoBanco = document.getElementById("botao-abrir-novo-banco");
+
+    const fundoModalBanco = document.getElementById("fundo-modal-banco");
+    const tituloModalBanco = document.getElementById("titulo-modal-banco");
+    const botaoFecharBanco = document.getElementById("botao-fechar-banco");
+    const campoNomeBanco = document.getElementById("campo-nome-banco");
+    const mensagemAvisoBanco = document.getElementById("mensagem-aviso-banco");
+    const botaoSalvarBanco = document.getElementById("botao-salvar-banco");
+    const spinnerBanco = botaoSalvarBanco.querySelector(".spinner-botao");
+    const botaoRemoverBanco = document.getElementById("botao-remover-banco");
+
     const botaoAbrirRetirada = document.getElementById("botao-abrir-retirada");
     const botaoFecharRetirada = document.getElementById("botao-fechar-retirada");
     const fundoModalRetirada = document.getElementById("fundo-modal-retirada");
@@ -76,6 +89,7 @@ document.addEventListener("DOMContentLoaded", function () {
         uidAtual = usuario.uid;
         escutarGuardado();
         escutarMetas();
+        escutarBancos();
     });
 
     // ==========================================================================
@@ -106,6 +120,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const sinal = ehRetirada ? "−" : "+";
 
                 const tituloGrande = dados.descricao || dados.meta || (ehRetirada ? "Retirada" : "Guardado");
+                const textoBanco = dados.banco ? ` · ${dados.banco}` : "";
 
                 const item = document.createElement("li");
                 item.className = "item-lancamento tipo-cofre";
@@ -113,7 +128,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <span class="ponto-categoria"></span>
                     <div class="info-lancamento">
                         <div class="descricao-lancamento">${tituloGrande}</div>
-                        <div class="meta-lancamento">Guardar Dinheiro · ${dataFormatada}</div>
+                        <div class="meta-lancamento">Guardar Dinheiro${textoBanco} · ${dataFormatada}</div>
                     </div>
                     <span class="valor-lancamento">${sinal} ${formatarMoeda(Math.abs(dados.valor))}</span>
                     <button class="botao-excluir" data-id="${documento.id}" aria-label="Excluir">
@@ -130,6 +145,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             todosOsDepositos = documentosOrdenados;
             renderizarMetas(); // os totais por meta dependem dos depósitos também
+            renderizarBancos(); // idem pros bancos
         });
     }
 
@@ -254,6 +270,102 @@ document.addEventListener("DOMContentLoaded", function () {
 
         await deleteDoc(doc(db, "usuarios", uidAtual, "metas", metaEmEdicaoId));
         fecharModalMeta();
+    });
+
+    // ==========================================================================
+    // BANCOS — onde o dinheiro guardado fica de verdade, com o total corrente
+    // (sem valor-alvo, banco não tem "meta", só mostra quanto tem lá)
+    // ==========================================================================
+    let listaDeBancos = []; // [{id, nome}]
+    let bancoEmEdicaoId = null;
+
+    function escutarBancos() {
+        const referencia = collection(db, "usuarios", uidAtual, "bancos");
+        onSnapshot(referencia, (snapshot) => {
+            listaDeBancos = snapshot.docs.map((documento) => ({ id: documento.id, ...documento.data() }));
+            renderizarBancos();
+        });
+    }
+
+    function totalGuardadoNoBanco(nomeDoBanco) {
+        return todosOsDepositos
+            .filter((documento) => documento.data().banco === nomeDoBanco && documento.data().valor > 0)
+            .reduce((soma, documento) => soma + documento.data().valor, 0);
+    }
+
+    function renderizarBancos() {
+        listaBancos.innerHTML = "";
+        bancosVazio.hidden = listaDeBancos.length > 0;
+
+        listaDeBancos.forEach((banco) => {
+            const totalNoBanco = totalGuardadoNoBanco(banco.nome);
+
+            const item = document.createElement("li");
+            item.className = "item-conta";
+            item.style.flexDirection = "column";
+            item.style.alignItems = "stretch";
+            item.innerHTML = `
+                <div style="display:flex; align-items:center; justify-content: space-between; width: 100%;">
+                    <span class="nome-conta">${banco.nome}</span>
+                    <button type="button" class="link-editar-meta" data-id="${banco.id}">Editar</button>
+                </div>
+                <div class="texto-barra-orcamento">${formatarMoeda(totalNoBanco)} guardado</div>
+            `;
+            item.querySelector(".link-editar-meta").addEventListener("click", () => abrirModalBanco(banco));
+            listaBancos.appendChild(item);
+        });
+    }
+
+    function abrirModalBanco(banco) {
+        bancoEmEdicaoId = banco ? banco.id : null;
+        tituloModalBanco.textContent = banco ? "Editar banco" : "Novo banco";
+        campoNomeBanco.value = banco ? banco.nome : "";
+        botaoRemoverBanco.hidden = !banco;
+        mensagemAvisoBanco.classList.remove("visivel");
+        fundoModalBanco.classList.add("aberto");
+    }
+
+    function fecharModalBanco() {
+        fundoModalBanco.classList.remove("aberto");
+    }
+
+    botaoAbrirNovoBanco.addEventListener("click", () => abrirModalBanco(null));
+    botaoFecharBanco.addEventListener("click", fecharModalBanco);
+    fundoModalBanco.addEventListener("click", (evento) => {
+        if (evento.target === fundoModalBanco) fecharModalBanco();
+    });
+
+    botaoSalvarBanco.addEventListener("click", async () => {
+        const nome = campoNomeBanco.value.trim();
+        mensagemAvisoBanco.classList.remove("visivel");
+
+        if (!nome) {
+            mensagemAvisoBanco.textContent = "Digita um nome pro banco.";
+            mensagemAvisoBanco.classList.add("visivel");
+            return;
+        }
+
+        botaoSalvarBanco.disabled = true;
+        spinnerBanco.hidden = false;
+
+        if (bancoEmEdicaoId) {
+            await updateDoc(doc(db, "usuarios", uidAtual, "bancos", bancoEmEdicaoId), { nome });
+        } else {
+            await addDoc(collection(db, "usuarios", uidAtual, "bancos"), { nome });
+        }
+
+        botaoSalvarBanco.disabled = false;
+        spinnerBanco.hidden = true;
+        fecharModalBanco();
+    });
+
+    botaoRemoverBanco.addEventListener("click", async () => {
+        if (!bancoEmEdicaoId) return;
+        const confirmou = await confirmarComTelinha("Tem certeza de que deseja remover esse banco? O histórico de depósitos continua salvo normalmente.");
+        if (!confirmou) return;
+
+        await deleteDoc(doc(db, "usuarios", uidAtual, "bancos", bancoEmEdicaoId));
+        fecharModalBanco();
     });
 
     // ==========================================================================

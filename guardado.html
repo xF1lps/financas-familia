@@ -51,6 +51,19 @@
             <ul class="lista-contas" id="lista-metas"></ul>
             <p class="lista-vazia" id="metas-vazio" hidden>Nenhuma meta criada ainda.</p>
 
+            <!-- ========================================================== -->
+            <!-- BANCOS — onde o dinheiro guardado fica de verdade, com o
+                 total corrente em cada um (sem barra de progresso, banco
+                 não tem "meta de valor", só o total mesmo) -->
+            <!-- ========================================================== -->
+            <div class="cabecalho-lista-lembretes" style="margin-top: 28px;">
+                <h3 class="titulo-secao" style="margin:0;">Seus bancos</h3>
+                <button type="button" class="botao-selecionar-lembretes" id="botao-abrir-novo-banco">+ Novo banco</button>
+            </div>
+
+            <ul class="lista-contas" id="lista-bancos"></ul>
+            <p class="lista-vazia" id="bancos-vazio" hidden>Nenhum banco cadastrado ainda.</p>
+
             <h3 class="titulo-secao" style="margin: 28px 0 14px 0;">Histórico</h3>
             <ul class="lista-lancamentos" id="lista-guardado"></ul>
             <p class="lista-vazia" id="guardado-vazio" hidden>Você ainda não guardou nenhum valor.</p>
@@ -102,6 +115,25 @@
                 <span class="spinner-botao" hidden></span>
             </button>
             <button type="button" class="link-editar-meta" id="botao-remover-meta" style="display:block; margin: 14px auto 0; color: var(--error);" hidden>Remover meta</button>
+        </div>
+    </div>
+
+    <div class="fundo-modal" id="fundo-modal-banco">
+        <div class="modal-lancamento">
+            <div class="cabecalho-modal">
+                <h3 id="titulo-modal-banco">Novo banco</h3>
+                <button class="botao-fechar-modal" id="botao-fechar-banco" aria-label="Fechar">✕</button>
+            </div>
+            <div class="campo">
+                <label for="campo-nome-banco">Nome do banco</label>
+                <input type="text" id="campo-nome-banco" placeholder="Ex: Nubank, Caixa...">
+            </div>
+            <div class="mensagem-aviso" id="mensagem-aviso-banco" role="alert"></div>
+            <button type="button" class="botao-enviar" id="botao-salvar-banco">
+                <span class="texto-botao">Salvar banco</span>
+                <span class="spinner-botao" hidden></span>
+            </button>
+            <button type="button" class="link-editar-meta" id="botao-remover-banco" style="display:block; margin: 14px auto 0; color: var(--error);" hidden>Remover banco</button>
         </div>
     </div>
 
